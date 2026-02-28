@@ -37,6 +37,18 @@ export default async function TripLayout({
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Cover photo banner */}
+      {trip.cover_photo_url && (
+        <div className="w-full h-36 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={trip.cover_photo_url}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
       {/* Trip header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-6 pt-6 pb-0">

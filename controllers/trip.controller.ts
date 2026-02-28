@@ -23,6 +23,9 @@ export async function createTrip(
     owner_id: ownerId,
     status: 'planning',
     forwarding_address: null,
+    budget: null,
+    budget_currency: 'USD',
+    share_token: null,
   })
 }
 
