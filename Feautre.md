@@ -17,6 +17,12 @@
 
 | Feature | Priority | Status |
 |---------|---------|--------|
+| Calendar view | High | ✅ Done — Month/Week/Day toggle; time-block grid for Week+Day; month cell chips; click day → Day view; auto-navigates to trip start date |
+
+
+
+| Feature | Priority | Status |
+|---------|---------|--------|
 | Email forwarding (PRD flagship) | High | Skipped for now — Postmark inbound webhook, sender whitelist, per-trip address |
 | Real-time collaboration | High | ✅ Done — Supabase Realtime subscriptions on events/expenses/documents/settlements |
 | Budget targets + progress bars | Medium | ✅ Done — total + per-category bars, inline set budget |
