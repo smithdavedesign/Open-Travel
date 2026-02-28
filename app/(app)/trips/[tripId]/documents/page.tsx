@@ -68,7 +68,11 @@ export default function DocumentsPage() {
         {loading ? (
           <p className="text-sm text-slate-400 text-center py-8">Loading…</p>
         ) : (
-          <DocumentList documents={documents} />
+          <DocumentList
+          documents={documents}
+          tripId={tripId}
+          onDelete={id => setDocuments(prev => prev.filter(d => d.id !== id))}
+        />
         )}
       </div>
 

@@ -7,9 +7,9 @@
 | Split modes | Partial | Only equal split works; exact/percentage/shares UI missing |
 | Settlement recording | ✅ Done | UI + API built |
 | Role enforcement | ✅ Done | RBAC applied to all mutation routes |
-| Cover photo | Pending | Field exists, no upload UI |
+| Cover photo | ✅ Done | Upload via Settings; banner shown in trip layout; editor+ can upload/remove |
 | Activity feed | ✅ Done | Live feed on timeline page sidebar — logs events, expenses, documents, invites, settlements |
-| Document viewer | Pending | Signed URLs exist, no in-app preview/viewer |
+| Document viewer | ✅ Done | View button fetches signed URL; images preview in modal; PDFs/others open in new tab; delete also added |
 
 ---
 

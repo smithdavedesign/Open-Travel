@@ -19,6 +19,8 @@ export default function TripSettingsPage() {
   const [duplicating, setDuplicating] = useState(false)
   const [sharingLoading, setSharingLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
+  const [coverError, setCoverError] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -48,6 +50,32 @@ export default function TripSettingsPage() {
       router.push(`/trips/${newTrip.id}`)
     }
     setDuplicating(false)
+  }
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCoverUploading(true)
+    setCoverError(null)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/trips/${tripId}/cover-photo`, { method: 'POST', body: formData })
+    if (res.ok) {
+      const { cover_photo_url } = await res.json()
+      setTrip(prev => prev ? { ...prev, cover_photo_url } : prev)
+    } else {
+      const data = await res.json()
+      setCoverError(data.error ?? 'Upload failed')
+    }
+    setCoverUploading(false)
+    e.target.value = ''
+  }
+
+  const handleRemoveCover = async () => {
+    setCoverUploading(true)
+    await fetch(`/api/trips/${tripId}/cover-photo`, { method: 'DELETE' })
+    setTrip(prev => prev ? { ...prev, cover_photo_url: null } : prev)
+    setCoverUploading(false)
   }
 
   const handleGenerateShareLink = async () => {
@@ -120,6 +148,49 @@ export default function TripSettingsPage() {
             </div>
           )}
         </dl>
+      </section>
+
+      {/* Cover photo */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-6">
+        <h2 className="text-base font-semibold text-slate-900 mb-1">Cover photo</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Shown at the top of the trip page. JPG, PNG or WebP — max 5 MB.
+        </p>
+
+        {trip.cover_photo_url && (
+          <div className="mb-4 relative w-full h-32 rounded-xl overflow-hidden bg-slate-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={trip.cover_photo_url}
+              alt="Cover"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-md border border-slate-200 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">
+              {coverUploading ? 'Uploading…' : trip.cover_photo_url ? 'Change photo' : 'Upload photo'}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={coverUploading}
+              onChange={handleCoverUpload}
+            />
+          </label>
+          {trip.cover_photo_url && !coverUploading && (
+            <button
+              onClick={handleRemoveCover}
+              className="text-sm text-red-400 hover:text-red-600"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+        {coverError && <p className="text-xs text-red-500 mt-2">{coverError}</p>}
       </section>
 
       {/* Share trip */}
