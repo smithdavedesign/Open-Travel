@@ -36,7 +36,7 @@ const s = StyleSheet.create({
 
   // Members
   memberChips:  { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 14 },
-  memberChip:   { backgroundColor: c.bg, border: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  memberChip:   { backgroundColor: c.bg, borderWidth: 1, borderStyle: 'solid', borderColor: c.border, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
   memberName:   { fontSize: 9, color: c.slate },
 
   // Day heading (itinerary)
