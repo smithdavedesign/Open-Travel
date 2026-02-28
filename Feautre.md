@@ -30,7 +30,7 @@
 | Public shareable trip link | Medium | ✅ Done — owner generates UUID token, /share/trips/[token] public read-only page |
 | Flight status alerts (AviationStack) | Low | Not started |
 | FX conversion (Open Exchange Rates) | Low | Not started |
-| Weather integration | Low | Not started |
+| Weather integration | Low | ✅ Done — Open-Meteo (free, no key); geocode + daily forecast; WeatherBadge on timeline day headings (server) and calendar month cells/week headers/day view (client) |
 | Map view (Mapbox) | Low | Not started |
 | PDF itinerary/expense export | Low | ✅ Done — GET /api/trips/[tripId]/export streams full report: itinerary + expenses + balances |
 | Notifications (in-app, email, push) | Low | Not started |

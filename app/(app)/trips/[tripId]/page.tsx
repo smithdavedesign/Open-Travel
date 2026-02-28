@@ -1,9 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import * as EventController from '@/controllers/event.controller'
+import * as TripModel from '@/models/trip.model'
+import { fetchTripWeather } from '@/lib/weather/openmeteo'
 import EventCard from '@/components/events/EventCard'
 import AddEventModal from '@/components/events/AddEventModal'
 import ActivityFeed from '@/components/activity/ActivityFeed'
 import ExportPDFButton from '@/components/trips/ExportPDFButton'
+import WeatherBadge from '@/components/weather/WeatherBadge'
 
 function formatDayHeading(dateStr: string): string {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
@@ -23,8 +26,17 @@ export default async function TripTimelinePage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const timeline = await EventController.getTripTimeline(tripId)
+  const [timeline, trip] = await Promise.all([
+    EventController.getTripTimeline(tripId),
+    TripModel.getTripById(tripId),
+  ])
   const sortedDates = Object.keys(timeline).sort()
+
+  const weather = await fetchTripWeather(
+    trip?.destinations ?? [],
+    trip?.start_date ?? sortedDates[0] ?? null,
+    trip?.end_date   ?? sortedDates[sortedDates.length - 1] ?? null
+  )
 
   return (
     <div className="flex gap-6 items-start">
@@ -51,9 +63,14 @@ export default async function TripTimelinePage({
           <div className="space-y-8">
             {sortedDates.map(date => (
               <div key={date}>
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
-                  {formatDayHeading(date)}
-                </h3>
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                    {formatDayHeading(date)}
+                  </h3>
+                  {weather?.daily[date] && (
+                    <WeatherBadge weather={weather.daily[date]} size="md" />
+                  )}
+                </div>
                 <div className="space-y-2">
                   {timeline[date].map(event => (
                     <EventCard key={event.id} event={event} />

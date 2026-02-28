@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import type { Event } from '@/types'
+import type { WeatherByDate } from '@/lib/weather/openmeteo'
+import WeatherBadge from '@/components/weather/WeatherBadge'
 
 // ─── Constants ────────────────────────────────────────────────────────────
 
@@ -208,10 +210,12 @@ function HourLines() {
 function MonthView({
   currentDate,
   events,
+  weather = {},
   onDayClick,
 }: {
   currentDate: Date
   events: Record<string, Event[]>
+  weather?: WeatherByDate
   onDayClick: (d: Date) => void
 }) {
   const year  = currentDate.getFullYear()
@@ -258,13 +262,18 @@ function MonthView({
                 thisMonth ? 'cursor-pointer hover:bg-slate-50' : 'bg-slate-50/40'
               }`}
             >
-              {/* Day number */}
-              <div className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mb-1 ${
-                isToday
-                  ? 'bg-blue-600 text-white'
-                  : thisMonth ? 'text-slate-700' : 'text-slate-300'
-              }`}>
-                {date.getDate()}
+              {/* Day number + weather */}
+              <div className="flex items-center justify-between mb-1">
+                <div className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
+                  isToday
+                    ? 'bg-blue-600 text-white'
+                    : thisMonth ? 'text-slate-700' : 'text-slate-300'
+                }`}>
+                  {date.getDate()}
+                </div>
+                {thisMonth && weather[ds] && (
+                  <WeatherBadge weather={weather[ds]} size="sm" />
+                )}
               </div>
 
               {/* Event pills */}
@@ -289,9 +298,11 @@ function MonthView({
 function WeekView({
   currentDate,
   events,
+  weather = {},
 }: {
   currentDate: Date
   events: Record<string, Event[]>
+  weather?: WeatherByDate
 }) {
   const weekStart = startOfWeek(currentDate)
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -315,6 +326,11 @@ function WeekView({
               }`}>
                 {d.getDate()}
               </p>
+              {weather[ds] && (
+                <div className="flex justify-center mt-0.5">
+                  <WeatherBadge weather={weather[ds]} size="sm" />
+                </div>
+              )}
             </div>
           )
         })}
@@ -365,9 +381,11 @@ function WeekView({
 function DayView({
   currentDate,
   events,
+  weather = {},
 }: {
   currentDate: Date
   events: Record<string, Event[]>
+  weather?: WeatherByDate
 }) {
   const ds = toDateStr(currentDate)
   const dayEvents  = events[ds] ?? []
@@ -377,6 +395,13 @@ function DayView({
 
   return (
     <div className="overflow-y-auto max-h-[70vh]">
+      {/* Weather strip */}
+      {weather[ds] && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50/60">
+          <WeatherBadge weather={weather[ds]} size="md" />
+        </div>
+      )}
+
       {/* All-day events */}
       {allDay.length > 0 && (
         <div className="border-b border-slate-100 bg-slate-50/60 p-2">
@@ -417,6 +442,7 @@ type CalView = 'month' | 'week' | 'day'
 export default function CalendarPage() {
   const { tripId } = useParams<{ tripId: string }>()
   const [events, setEvents]       = useState<Record<string, Event[]>>({})
+  const [weather, setWeather]     = useState<WeatherByDate>({})
   const [loading, setLoading]     = useState(true)
   const [view, setView]           = useState<CalView>('month')
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -425,8 +451,10 @@ export default function CalendarPage() {
     Promise.all([
       fetch(`/api/events?tripId=${tripId}`).then(r => r.json()),
       fetch(`/api/trips/${tripId}`).then(r => r.json()),
-    ]).then(([eventsData, tripData]) => {
+      fetch(`/api/trips/${tripId}/weather`).then(r => r.json()),
+    ]).then(([eventsData, tripData, weatherData]) => {
       setEvents(eventsData)
+      setWeather(weatherData.daily ?? {})
       // Initialize to trip start date, or first event date, or today
       const startDate = tripData.trip?.start_date
         ?? Object.keys(eventsData).sort()[0]
@@ -516,14 +544,15 @@ export default function CalendarPage() {
         <MonthView
           currentDate={currentDate}
           events={events}
+          weather={weather}
           onDayClick={d => { setCurrentDate(d); setView('day') }}
         />
       )}
       {view === 'week' && (
-        <WeekView currentDate={currentDate} events={events} />
+        <WeekView currentDate={currentDate} events={events} weather={weather} />
       )}
       {view === 'day' && (
-        <DayView currentDate={currentDate} events={events} />
+        <DayView currentDate={currentDate} events={events} weather={weather} />
       )}
     </div>
   )
