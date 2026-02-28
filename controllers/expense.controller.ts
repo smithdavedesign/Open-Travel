@@ -10,11 +10,12 @@ export async function addExpense(
   tripId: string,
   data: Omit<Expense, 'id' | 'created_at'>,
   memberIds: string[],
-  splitMode: SplitMode = 'equal'
+  splitMode: SplitMode = 'equal',
+  splitValues?: Record<string, number> // userId → value (exact $ | pct | shares)
 ): Promise<Expense> {
   const expense = await ExpenseModel.createExpense({ ...data, trip_id: tripId })
 
-  const splits = buildSplits(expense.id, expense.amount, memberIds, splitMode)
+  const splits = buildSplits(expense.id, expense.amount, memberIds, splitMode, splitValues)
   await ExpenseModel.upsertSplits(splits)
 
   logActivity({
@@ -106,21 +107,45 @@ export async function computeBalances(tripId: string): Promise<Record<string, Ba
   return balances
 }
 
+function round2(n: number) {
+  return Math.round(n * 100) / 100
+}
+
 function buildSplits(
   expenseId: string,
   total: number,
   memberIds: string[],
-  mode: SplitMode
+  mode: SplitMode,
+  values?: Record<string, number> // userId → value
 ): Omit<ExpenseSplit, 'id'>[] {
+  const make = (userId: string, amount: number) => ({
+    expense_id: expenseId,
+    user_id: userId,
+    amount: round2(amount),
+    split_mode: mode,
+  })
+
   if (mode === 'equal') {
-    const share = Math.round((total / memberIds.length) * 100) / 100
-    return memberIds.map((userId) => ({
-      expense_id: expenseId,
-      user_id: userId,
-      amount: share,
-      split_mode: mode,
-    }))
+    const share = total / memberIds.length
+    return memberIds.map(id => make(id, share))
   }
-  // Other modes (exact, percentage, shares) handled when frontend sends amounts directly
+
+  if (mode === 'exact') {
+    // values[userId] = exact dollar amount owed by that member
+    return memberIds.map(id => make(id, values?.[id] ?? 0))
+  }
+
+  if (mode === 'percentage') {
+    // values[userId] = percentage (0-100), must sum to 100
+    return memberIds.map(id => make(id, total * (values?.[id] ?? 0) / 100))
+  }
+
+  if (mode === 'shares') {
+    // values[userId] = number of shares (integer), proportional split
+    const totalShares = memberIds.reduce((s, id) => s + (values?.[id] ?? 1), 0)
+    if (totalShares === 0) return memberIds.map(id => make(id, 0))
+    return memberIds.map(id => make(id, total * (values?.[id] ?? 1) / totalShares))
+  }
+
   return []
 }

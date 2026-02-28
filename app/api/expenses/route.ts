@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { tripId, memberIds, splitMode, ...expenseData } = body
+    const { tripId, memberIds, splitMode, splitValues, ...expenseData } = body
 
     if (!tripId || !memberIds?.length) {
       return NextResponse.json({ error: 'tripId and memberIds are required' }, { status: 400 })
@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
       tripId,
       { ...expenseData, paid_by: expenseData.paid_by ?? user.id },
       memberIds,
-      splitMode ?? 'equal'
+      splitMode ?? 'equal',
+      splitValues // userId → value map (used for exact/percentage/shares)
     )
     return NextResponse.json(expense, { status: 201 })
   } catch (err: unknown) {

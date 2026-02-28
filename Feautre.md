@@ -4,7 +4,7 @@
 
 | Thing | Status | Gap |
 |-------|--------|-----|
-| Split modes | Partial | Only equal split works; exact/percentage/shares UI missing |
+| Split modes | ✅ Done | All 4 modes: equal, exact $, percentage %, shares — UI + controller + API complete |
 | Settlement recording | ✅ Done | UI + API built |
 | Role enforcement | ✅ Done | RBAC applied to all mutation routes |
 | Cover photo | ✅ Done | Upload via Settings; banner shown in trip layout; editor+ can upload/remove |
