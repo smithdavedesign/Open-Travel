@@ -3,6 +3,7 @@ import * as EventController from '@/controllers/event.controller'
 import EventCard from '@/components/events/EventCard'
 import AddEventModal from '@/components/events/AddEventModal'
 import ActivityFeed from '@/components/activity/ActivityFeed'
+import ExportPDFButton from '@/components/trips/ExportPDFButton'
 
 function formatDayHeading(dateStr: string): string {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
@@ -31,7 +32,10 @@ export default async function TripTimelinePage({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-semibold text-slate-900">Itinerary</h2>
-          <AddEventModal tripId={tripId} />
+          <div className="flex items-center gap-3">
+            <ExportPDFButton tripId={tripId} />
+            <AddEventModal tripId={tripId} />
+          </div>
         </div>
 
         {sortedDates.length === 0 ? (

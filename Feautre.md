@@ -26,7 +26,7 @@
 | FX conversion (Open Exchange Rates) | Low | Not started |
 | Weather integration | Low | Not started |
 | Map view (Mapbox) | Low | Not started |
-| PDF itinerary/expense export | Low | Not started |
+| PDF itinerary/expense export | Low | ✅ Done — GET /api/trips/[tripId]/export streams full report: itinerary + expenses + balances |
 | Notifications (in-app, email, push) | Low | Not started |
 | Monetization / plan tiers | Later | Not started |
 | Discovery/recommendations | Later | Not started |

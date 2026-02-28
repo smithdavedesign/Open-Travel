@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import AddExpenseModal from '@/components/budget/AddExpenseModal'
+import ExportPDFButton from '@/components/trips/ExportPDFButton'
 import ExpenseList from '@/components/budget/ExpenseList'
 import BalanceSummary from '@/components/budget/BalanceSummary'
 import RecordSettlementModal from '@/components/budget/RecordSettlementModal'
@@ -115,7 +116,8 @@ export default function BudgetPage() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <ExportPDFButton tripId={tripId} />
           {hasBalances && !allSettled && (
             <Button variant="outline" onClick={() => setShowSettle(true)}>Settle up</Button>
           )}
