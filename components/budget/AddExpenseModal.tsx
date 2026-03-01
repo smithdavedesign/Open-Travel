@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import type { TripMember, ExpenseCategory, SplitMode } from '@/types'
+import type { Expense, TripMember, ExpenseCategory, SplitMode } from '@/types'
 
 const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
   { value: 'flights', label: '✈️ Flights' },
@@ -20,10 +20,10 @@ const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY']
 
 const SPLIT_MODES: { value: SplitMode; label: string; hint: string }[] = [
-  { value: 'equal',      label: 'Equal',      hint: 'Divide evenly' },
-  { value: 'exact',      label: 'Exact',      hint: 'Enter amounts' },
-  { value: 'percentage', label: '%',           hint: 'Enter percents' },
-  { value: 'shares',     label: 'Shares',     hint: 'Ratio-based' },
+  { value: 'equal',      label: 'Equal',  hint: 'Divide evenly' },
+  { value: 'exact',      label: 'Exact',  hint: 'Enter amounts' },
+  { value: 'percentage', label: '%',      hint: 'Enter percents' },
+  { value: 'shares',     label: 'Shares', hint: 'Ratio-based' },
 ]
 
 interface Props {
@@ -32,13 +32,15 @@ interface Props {
   currentUserId: string
   onClose: () => void
   onSaved: () => void
+  expense?: Expense  // when provided: edit mode
 }
 
 function memberName(m: TripMember) {
   return m.profiles?.full_name ?? m.profiles?.email ?? m.user_id.slice(0, 8)
 }
 
-export default function AddExpenseModal({ tripId, members, currentUserId, onClose, onSaved }: Props) {
+export default function AddExpenseModal({ tripId, members, currentUserId, onClose, onSaved, expense }: Props) {
+  const isEditMode = Boolean(expense)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -52,13 +54,23 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
     notes: '',
   })
 
-  // Split state
   const [splitMode, setSplitMode] = useState<SplitMode>('equal')
-  const [selectedMembers, setSelectedMembers] = useState<string[]>(
-    members.map(m => m.user_id)
-  )
-  // splitValues[userId] = exact $ | percentage | shares depending on mode
+  const [selectedMembers, setSelectedMembers] = useState<string[]>(members.map(m => m.user_id))
   const [splitValues, setSplitValues] = useState<Record<string, string>>({})
+
+  // Seed form when editing
+  useEffect(() => {
+    if (!expense) return
+    setForm({
+      title: expense.title,
+      amount: expense.amount.toString(),
+      currency: expense.currency,
+      category: expense.category,
+      paid_by: expense.paid_by,
+      date: expense.date,
+      notes: expense.notes ?? '',
+    })
+  }, [expense])
 
   const total = parseFloat(form.amount) || 0
 
@@ -92,7 +104,6 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
     setSplitValues(prev => ({ ...prev, [userId]: val }))
   }
 
-  // Validation helpers
   const sumExact = selectedMembers.reduce((s, id) => s + (parseFloat(splitValues[id] ?? '0') || 0), 0)
   const sumPct   = selectedMembers.reduce((s, id) => s + (parseFloat(splitValues[id] ?? '0') || 0), 0)
   const totalShares = selectedMembers.reduce((s, id) => s + (parseFloat(splitValues[id] ?? '0') || 0), 0)
@@ -105,7 +116,6 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
     return null
   })()
 
-  // Preview per-member amounts
   const previewAmount = (userId: string): string => {
     const val = parseFloat(splitValues[userId] ?? '0') || 0
     let amt = 0
@@ -116,43 +126,43 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
     return amt.toFixed(2)
   }
 
-  const canSave =
-    form.title &&
-    form.amount &&
-    selectedMembers.length > 0 &&
-    !splitError
+  const canSave = form.title && form.amount && selectedMembers.length > 0 && !splitError
 
   const handleSave = async () => {
     if (!canSave) return
     setError('')
     setSaving(true)
     try {
-      // Build numeric splitValues map to send
       const numericValues: Record<string, number> = {}
       selectedMembers.forEach(id => {
         numericValues[id] = parseFloat(splitValues[id] ?? '0') || 0
       })
 
-      const res = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tripId,
-          title: form.title,
-          amount: parseFloat(form.amount),
-          currency: form.currency,
-          amount_home_currency: null,
-          category: form.category,
-          paid_by: form.paid_by,
-          date: form.date,
-          notes: form.notes || null,
-          receipt_url: null,
-          event_id: null,
-          memberIds: selectedMembers,
-          splitMode,
-          splitValues: splitMode === 'equal' ? undefined : numericValues,
-        }),
-      })
+      const payload = {
+        title: form.title,
+        amount: parseFloat(form.amount),
+        currency: form.currency,
+        category: form.category,
+        paid_by: form.paid_by,
+        date: form.date,
+        notes: form.notes || null,
+        memberIds: selectedMembers,
+        splitMode,
+        splitValues: splitMode === 'equal' ? undefined : numericValues,
+      }
+
+      const res = isEditMode
+        ? await fetch(`/api/expenses/${expense!.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+        : await fetch('/api/expenses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tripId, amount_home_currency: null, receipt_url: null, event_id: null, ...payload }),
+          })
+
       if (!res.ok) {
         const d = await res.json()
         throw new Error(d.error ?? 'Failed to save expense')
@@ -170,7 +180,7 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
     <Dialog open onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add expense</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit expense' : 'Add expense'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -224,7 +234,6 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Split</Label>
-              {/* Mode tabs */}
               <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
                 {SPLIT_MODES.map(m => (
                   <button
@@ -244,7 +253,6 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
               </div>
             </div>
 
-            {/* Equal mode: chip toggles + "X each" preview */}
             {splitMode === 'equal' && (
               <>
                 <div className="flex flex-wrap gap-2">
@@ -275,30 +283,20 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
               </>
             )}
 
-            {/* Exact / Percentage / Shares: per-member row inputs */}
             {splitMode !== 'equal' && (
               <div className="space-y-1.5 rounded-xl border border-slate-100 bg-slate-50 p-3">
                 {members.map(m => {
                   const included = selectedMembers.includes(m.user_id)
-                  const placeholder =
-                    splitMode === 'exact' ? '0.00'
-                    : splitMode === 'percentage' ? '0'
-                    : '1'
-                  const suffix =
-                    splitMode === 'percentage' ? '%'
-                    : splitMode === 'shares' ? ' shares'
-                    : ` ${form.currency}`
+                  const placeholder = splitMode === 'exact' ? '0.00' : splitMode === 'percentage' ? '0' : '1'
+                  const suffix = splitMode === 'percentage' ? '%' : splitMode === 'shares' ? ' shares' : ` ${form.currency}`
 
                   return (
                     <div key={m.user_id} className="flex items-center gap-2">
-                      {/* Include/exclude toggle */}
                       <button
                         type="button"
                         onClick={() => toggleMember(m.user_id)}
                         className={`h-5 w-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                          included
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'bg-white border-slate-300 text-transparent'
+                          included ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-transparent'
                         }`}
                       >
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 12 12">
@@ -333,7 +331,6 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
                   )
                 })}
 
-                {/* Summary row */}
                 <div className="pt-1 mt-1 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
                   {splitMode === 'exact' && (
                     <>
@@ -364,9 +361,7 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
               </div>
             )}
 
-            {splitError && (
-              <p className="text-xs text-red-500">{splitError}</p>
-            )}
+            {splitError && <p className="text-xs text-red-500">{splitError}</p>}
           </div>
 
           {/* Notes */}
@@ -380,11 +375,8 @@ export default function AddExpenseModal({ tripId, members, currentUserId, onClos
 
         <div className="flex justify-between gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || !canSave}
-          >
-            {saving ? 'Saving…' : 'Add expense'}
+          <Button onClick={handleSave} disabled={saving || !canSave}>
+            {saving ? 'Saving…' : isEditMode ? 'Save changes' : 'Add expense'}
           </Button>
         </div>
       </DialogContent>

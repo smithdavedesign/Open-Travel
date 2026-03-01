@@ -26,6 +26,22 @@ export async function addExpense(
   return expense
 }
 
+export async function updateExpense(
+  expenseId: string,
+  updates: Partial<Omit<Expense, 'id' | 'created_at'>>,
+  memberIds?: string[],
+  splitMode: SplitMode = 'equal',
+  splitValues?: Record<string, number>
+): Promise<Expense> {
+  const expense = await ExpenseModel.updateExpense(expenseId, updates)
+  if (memberIds && memberIds.length > 0) {
+    await ExpenseModel.deleteSplitsForExpense(expenseId)
+    const splits = buildSplits(expenseId, expense.amount, memberIds, splitMode, splitValues)
+    await ExpenseModel.upsertSplits(splits)
+  }
+  return expense
+}
+
 export async function deleteExpense(expenseId: string): Promise<void> {
   return ExpenseModel.deleteExpense(expenseId)
 }

@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Place, PlaceCategory, PlaceStatus } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const CATEGORIES: { id: PlaceCategory; label: string; icon: React.ElementType; color: string; iconBg: string }[] = [
@@ -28,6 +28,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
   const [activeCategory, setActiveCategory] = useState<PlaceCategory>('food_drink')
   const [search, setSearch]           = useState('')
   const [dialogOpen, setDialogOpen]   = useState(false)
+  const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [saving, setSaving]           = useState(false)
   const [form, setForm]               = useState({ name: '', location: '', notes: '', url: '' })
 
@@ -43,23 +44,53 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }))
 
-  async function addPlace() {
+  function openAddDialog() {
+    setEditingPlace(null)
+    setForm({ name: '', location: '', notes: '', url: '' })
+    setDialogOpen(true)
+  }
+
+  function openEditDialog(place: Place) {
+    setEditingPlace(place)
+    setForm({ name: place.name, location: place.location ?? '', notes: place.notes ?? '', url: place.url ?? '' })
+    setDialogOpen(true)
+  }
+
+  function closeDialog() {
+    setDialogOpen(false)
+    setEditingPlace(null)
+    setForm({ name: '', location: '', notes: '', url: '' })
+  }
+
+  async function savePlace() {
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/trips/${tripId}/places`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, name: form.name.trim(), category: activeCategory }),
-      })
-      if (!res.ok) throw new Error()
-      const place: Place = await res.json()
-      setPlaces(prev => [...prev, place])
-      setForm({ name: '', location: '', notes: '', url: '' })
-      setDialogOpen(false)
-      toast.success(`"${place.name}" added`)
+      if (editingPlace) {
+        const updates = { name: form.name.trim(), location: form.location || null, notes: form.notes || null, url: form.url || null }
+        const res = await fetch(`/api/trips/${tripId}/places/${editingPlace.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        })
+        if (!res.ok) throw new Error()
+        const updated: Place = await res.json()
+        setPlaces(prev => prev.map(p => p.id === updated.id ? updated : p))
+        toast.success(`"${updated.name}" updated`)
+      } else {
+        const res = await fetch(`/api/trips/${tripId}/places`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...form, name: form.name.trim(), category: activeCategory }),
+        })
+        if (!res.ok) throw new Error()
+        const place: Place = await res.json()
+        setPlaces(prev => [...prev, place])
+        toast.success(`"${place.name}" added`)
+      }
+      closeDialog()
     } catch {
-      toast.error('Failed to add place')
+      toast.error(editingPlace ? 'Failed to update place' : 'Failed to add place')
     } finally {
       setSaving(false)
     }
@@ -141,14 +172,14 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 w-36 text-sm" />
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-1.5 h-8">
-                  <Plus className="h-3.5 w-3.5" />Add place
-                </Button>
-              </DialogTrigger>
+            <Button size="sm" className="gap-1.5 h-8" onClick={openAddDialog}>
+              <Plus className="h-3.5 w-3.5" />Add place
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={open => !open && closeDialog()}>
               <DialogContent className="sm:max-w-md">
-                <DialogHeader><DialogTitle>Add a place to visit</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>{editingPlace ? 'Edit place' : 'Add a place to visit'}</DialogTitle>
+                </DialogHeader>
                 <div className="space-y-3 mt-2">
                   <div className="space-y-1">
                     <Label htmlFor="place-name">Name *</Label>
@@ -167,8 +198,10 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                     <Input id="place-notes" placeholder="Any notes…" value={form.notes} onChange={set('notes')} />
                   </div>
                   <div className="flex justify-end gap-2 pt-1">
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={addPlace} disabled={saving || !form.name.trim()}>{saving ? 'Adding…' : 'Add place'}</Button>
+                    <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+                    <Button onClick={savePlace} disabled={saving || !form.name.trim()}>
+                      {saving ? 'Saving…' : editingPlace ? 'Save changes' : 'Add place'}
+                    </Button>
                   </div>
                 </div>
               </DialogContent>
@@ -184,7 +217,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
               {search ? `No places matching "${search}"` : 'No places yet'}
             </p>
             {!search && (
-              <button className="mt-2 text-sm text-primary hover:underline" onClick={() => setDialogOpen(true)}>
+              <button className="mt-2 text-sm text-primary hover:underline" onClick={openAddDialog}>
                 Add your first place
               </button>
             )}
@@ -215,6 +248,9 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(place)}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" />Edit
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => deletePlace(place.id, place.name)} className="text-destructive focus:text-destructive">
                           <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
                         </DropdownMenuItem>

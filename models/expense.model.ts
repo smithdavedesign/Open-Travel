@@ -73,11 +73,16 @@ export async function getSplitsForExpense(expenseId: string): Promise<ExpenseSpl
 }
 
 export async function upsertSplits(splits: Omit<ExpenseSplit, 'id'>[]): Promise<void> {
-  
+
   const { error } = await supabase
     .from('expense_splits')
     .upsert(splits, { onConflict: 'expense_id,user_id' })
 
+  if (error) throw error
+}
+
+export async function deleteSplitsForExpense(expenseId: string): Promise<void> {
+  const { error } = await supabase.from('expense_splits').delete().eq('expense_id', expenseId)
   if (error) throw error
 }
 
