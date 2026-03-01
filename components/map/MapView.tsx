@@ -59,17 +59,23 @@ export default function MapView({ places, mapboxToken }: Props) {
   const [geocoded, setGeocoded] = useState<GeocodedPlace[]>([])
   const [activeCategory, setActiveCategory] = useState<PlaceCategory | 'all'>('all')
 
-  // Geocode all places with locations
+  // Geocode all places with locations (batched for performance)
   useEffect(() => {
     let cancelled = false
     async function run() {
       const withLocation = places.filter((p) => p.location?.trim())
+      const BATCH_SIZE = 5
       const results: GeocodedPlace[] = []
-      for (const place of withLocation) {
+      for (let i = 0; i < withLocation.length; i += BATCH_SIZE) {
         if (cancelled) return
-        const coords = await geocodeLocation(place.location!, mapboxToken)
-        if (coords) {
-          results.push({ ...place, lng: coords[0], lat: coords[1] })
+        const batch = withLocation.slice(i, i + BATCH_SIZE)
+        const coords = await Promise.all(
+          batch.map((place) => geocodeLocation(place.location!, mapboxToken))
+        )
+        for (let j = 0; j < batch.length; j++) {
+          if (coords[j]) {
+            results.push({ ...batch[j], lng: coords[j]![0], lat: coords[j]![1] })
+          }
         }
       }
       if (!cancelled) {
@@ -162,6 +168,10 @@ export default function MapView({ places, mapboxToken }: Props) {
   ]
 
   const placesWithLocation = places.filter((p) => p.location?.trim())
+  const filteredCount =
+    activeCategory === 'all'
+      ? geocoded.length
+      : geocoded.filter((p) => p.category === activeCategory).length
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -225,7 +235,7 @@ export default function MapView({ places, mapboxToken }: Props) {
       {/* Summary */}
       {!loading && (
         <p className="text-xs text-muted-foreground">
-          Showing {activeCategory === 'all' ? geocoded.length : geocoded.filter((p) => p.category === activeCategory).length} of{' '}
+          Showing {filteredCount} of{' '}
           {places.length} places on map
           {places.length > geocoded.length && (
             <span>
