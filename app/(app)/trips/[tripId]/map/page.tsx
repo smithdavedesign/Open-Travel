@@ -16,11 +16,11 @@ export default async function MapPage({
 
   if (!mapboxToken) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed border-slate-200 bg-white">
+      <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed">
         <div className="text-5xl mb-4">🗺️</div>
-        <h2 className="text-lg font-semibold text-slate-800 mb-2">Map not configured</h2>
-        <p className="text-sm text-slate-400 text-center max-w-sm">
-          Add your <code className="font-mono bg-slate-100 px-1 rounded border border-slate-200">NEXT_PUBLIC_MAPBOX_TOKEN</code> environment variable to enable interactive maps.
+        <h2 className="text-lg font-semibold text-foreground mb-2">Map not configured</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-sm">
+          Add your <code className="font-mono bg-muted px-1 rounded border">NEXT_PUBLIC_MAPBOX_TOKEN</code> environment variable to enable interactive maps.
         </p>
         <a
           href="https://account.mapbox.com/access-tokens/"
@@ -39,10 +39,10 @@ export default async function MapPage({
     places = await ListController.getPlaces(tripId)
   } catch {
     return (
-      <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed border-red-200 bg-red-50/40">
-        <p className="text-lg font-semibold text-red-700 mb-2">Database tables not found</p>
-        <p className="text-sm text-red-500 text-center max-w-sm">
-          Run <code className="font-mono bg-white px-1 rounded border border-red-200">supabase/migrations/002_lists.sql</code> in your Supabase SQL editor to enable this feature.
+      <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed border-destructive/30 bg-destructive/5">
+        <p className="text-lg font-semibold text-destructive mb-2">Database tables not found</p>
+        <p className="text-sm text-muted-foreground text-center max-w-sm">
+          Run <code className="font-mono bg-muted px-1 rounded border">supabase/migrations/002_lists.sql</code> in your Supabase SQL editor to enable this feature.
         </p>
       </div>
     )
