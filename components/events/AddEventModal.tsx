@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import type { Event, EventType } from '@/types'
+import type { Event, EventType, FlightData } from '@/types'
 
 const EVENT_TYPES: { value: EventType; label: string; icon: string }[] = [
   { value: 'flight',     label: 'Flight',      icon: '✈️' },
@@ -28,6 +28,7 @@ const empty = {
   end_time: '',
   location: '',
   confirmation_code: '',
+  flight_number: '',
   cost: '',
   currency: 'USD',
   notes: '',
@@ -62,6 +63,7 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
         end_time: editEvent.end_time ?? '',
         location: editEvent.location ?? '',
         confirmation_code: editEvent.confirmation_code ?? '',
+        flight_number: (editEvent.data as FlightData)?.flight_number ?? '',
         cost: editEvent.cost != null ? String(editEvent.cost) : '',
         currency: editEvent.currency,
         notes: editEvent.notes ?? '',
@@ -94,7 +96,9 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
         cost: form.cost ? parseFloat(form.cost) : null,
         currency: form.currency,
         notes: form.notes || null,
-        data: editEvent?.data ?? {},
+        data: form.type === 'flight'
+          ? { ...(editEvent?.data ?? {}), flight_number: form.flight_number || null }
+          : (editEvent?.data ?? {}),
       }
 
       const res = isEditMode
@@ -138,8 +142,8 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
                   onClick={() => setForm(f => ({ ...f, type: t.value }))}
                   className={`flex flex-col items-center gap-1 rounded-lg border p-2 text-xs font-medium transition-colors ${
                     form.type === t.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:border-border/80'
                   }`}
                 >
                   <span className="text-lg">{t.icon}</span>
@@ -176,6 +180,13 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
             </div>
           </div>
 
+          {form.type === 'flight' && (
+            <div className="space-y-1">
+              <Label htmlFor="flight_number">Flight number</Label>
+              <Input id="flight_number" placeholder="e.g. AA100, UA1" value={form.flight_number} onChange={set('flight_number')} />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="confirmation_code">Confirmation code</Label>
@@ -203,7 +214,7 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
             <Textarea id="notes" placeholder="Any additional details…" rows={2} value={form.notes} onChange={set('notes')} />
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
