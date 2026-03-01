@@ -75,10 +75,10 @@ Users can now edit anything they can create. Follows the dual-mode modal/inline 
 | Budget targets + progress bars | Medium | ✅ Done — total + per-category bars, inline set budget |
 | Trip duplication/template | Medium | ✅ Done — duplicates shell (name/destinations/dates), no events copied |
 | Public shareable trip link | Medium | ✅ Done — owner generates UUID token, /share/trips/[token] public read-only page |
-| Flight status alerts (AviationStack) | Low | Not started |
+| Flight status alerts (AviationStack) | Low | 🔀 In review — `copilot/add-flight-status-lookup`; Radar button on flight events (List/Kanban/Block views); `FlightStatusModal`; `GET /api/flight-status`; `lib/aviationstack/client.ts`; needs `AVIATIONSTACK_API_KEY` env var |
 | FX conversion (Open Exchange Rates) | Low | Not started |
 | Weather integration | Low | ✅ Done — Open-Meteo (free, no key); geocode + daily forecast; WeatherBadge on timeline day headings (server) and calendar month cells/week headers/day view (client) |
-| Map view (Mapbox) | Low | Stub built — /map shows "coming soon" placeholder; full Mapbox integration pending |
+| Map view (Mapbox) | Low | 🔀 In review — `copilot/featuremap`; Mapbox GL JS, geocodes places, category filter pills, popups; needs `NEXT_PUBLIC_MAPBOX_TOKEN` env var |
 | PDF itinerary/expense export | Low | ✅ Done — GET /api/trips/[tripId]/export streams full report: itinerary + expenses + balances |
 | Notifications (in-app, email, push) | Low | Not started |
 | Monetization / plan tiers | Later | Not started |
