@@ -61,7 +61,7 @@ Users can now edit anything they can create. Follows the dual-mode modal/inline 
 | **Member roles** | MemberList — inline `<select>` dropdown per non-owner member | PATCH `/api/trips/[tripId]/members/[userId]` (new) | Owner-only; cannot change own role |
 | **Expenses** | AddExpenseModal — dual-mode via optional `expense?` prop; ExpenseList pencil icon | PATCH `/api/expenses/[expenseId]` (new) | Deletes + rebuilds splits on save; full split mode support |
 | **Checklist items** | ChecklistPanel — inline edit row (title, notes, qty) on pencil click | PATCH `/api/trips/[tripId]/checklists/[itemId]` (existing) | Optimistic update, rollback on fail |
-| **Places** | PlacesPanel — reuses add dialog, pre-filled for edit; pencil in dropdown | PATCH `/api/trips/[tripId]/places/[placeId]` (existing) | Single dialog, dual-mode via `editingPlace` state |
+| **Places** | PlacesPanel — reuses add dialog, pre-filled for edit; pencil in dropdown; Mapbox Search Box autocomplete with suggest→retrieve two-step for accurate coords | PATCH `/api/trips/[tripId]/places/[placeId]` (existing) | Single dialog, dual-mode via `editingPlace` state; `lng`/`lat` stored on place row |
 
 ---
 
@@ -75,10 +75,10 @@ Users can now edit anything they can create. Follows the dual-mode modal/inline 
 | Budget targets + progress bars | Medium | ✅ Done — total + per-category bars, inline set budget |
 | Trip duplication/template | Medium | ✅ Done — duplicates shell (name/destinations/dates), no events copied |
 | Public shareable trip link | Medium | ✅ Done — owner generates UUID token, /share/trips/[token] public read-only page |
-| Flight status alerts (AviationStack) | Low | Not started |
+| Flight status alerts (AviationStack) | Low | Partial — AviationStack lookup in AddEventModal: flight number → auto-fills airline, origin, destination, departure/arrival times. Full push notifications not started. |
 | FX conversion (Open Exchange Rates) | Low | Not started |
 | Weather integration | Low | ✅ Done — Open-Meteo (free, no key); geocode + daily forecast; WeatherBadge on timeline day headings (server) and calendar month cells/week headers/day view (client) |
-| Map view (Mapbox) | Low | Stub built — /map shows "coming soon" placeholder; full Mapbox integration pending |
+| Map view (Mapbox) | Low | ✅ Done — Mapbox GL JS; places rendered as color-coded pins by category; stored lng/lat (from Search Box API) used directly; legacy places geocoded at runtime; SSR-safe via dynamic() wrapper |
 | PDF itinerary/expense export | Low | ✅ Done — GET /api/trips/[tripId]/export streams full report: itinerary + expenses + balances |
 | Notifications (in-app, email, push) | Low | Not started |
 | Monetization / plan tiers | Later | Not started |
