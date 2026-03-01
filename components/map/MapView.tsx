@@ -174,7 +174,7 @@ export default function MapView({ places, mapboxToken }: Props) {
       : geocoded.filter((p) => p.category === activeCategory).length
 
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex flex-col gap-4">
       {/* Category filter pills */}
       <div className="flex flex-wrap gap-2">
         {categories.map((cat) => {
@@ -218,7 +218,7 @@ export default function MapView({ places, mapboxToken }: Props) {
       </div>
 
       {/* Map container */}
-      <div className="relative flex-1 rounded-xl overflow-hidden border min-h-[500px]">
+      <div className="relative rounded-xl overflow-hidden border" style={{ height: 'calc(100vh - 260px)', minHeight: '500px' }}>
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80">
             <div className="flex flex-col items-center gap-2">

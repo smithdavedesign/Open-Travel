@@ -49,7 +49,7 @@ export default async function MapPage({
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)]">
+    <div>
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-foreground">Map</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
