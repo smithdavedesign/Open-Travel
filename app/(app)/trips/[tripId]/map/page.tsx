@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import * as ListController from '@/controllers/list.controller'
-import MapView from '@/components/map/MapView'
+import MapViewClient from '@/components/map/MapViewClient'
 
 export default async function MapPage({
   params,
@@ -56,7 +56,7 @@ export default async function MapPage({
           Your places to visit pinned on an interactive map
         </p>
       </div>
-      <MapView places={places} mapboxToken={mapboxToken} />
+      <MapViewClient places={places} mapboxToken={mapboxToken} />
     </div>
   )
 }
