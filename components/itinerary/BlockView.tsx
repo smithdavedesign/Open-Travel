@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import type { Event } from '@/types'
 import { TYPE_CONFIG, fmt12h } from '@/components/events/EventCard'
-import { Pencil, Trash2, type LucideProps } from 'lucide-react'
+import { Pencil, Trash2, Radar } from 'lucide-react'
+import FlightStatusModal from '@/components/flights/FlightStatusModal'
 
 interface Props {
   timeline: Record<string, Event[]>
@@ -14,6 +16,69 @@ function formatDayHeading(dateStr: string): string {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   })
+}
+
+function BlockEventRow({
+  event,
+  onEdit,
+  onDelete,
+}: {
+  event: Event
+  onEdit: (event: Event) => void
+  onDelete: (eventId: string) => void
+}) {
+  const cfg = TYPE_CONFIG[event.type] ?? TYPE_CONFIG.custom
+  const isFlight = event.type === 'flight'
+  const [statusOpen, setStatusOpen] = useState(false)
+
+  return (
+    <>
+      <div className="group flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+        <div className={`${cfg.color} rounded-md p-1.5 shrink-0 mt-0.5`}>
+          <cfg.icon className="h-3 w-3 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground leading-snug truncate">
+            {event.title}
+          </p>
+          {(event.start_time || event.location) && (
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {fmt12h(event.start_time)}
+              {event.location ? ` · ${event.location}` : ''}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {isFlight && (
+            <button
+              onClick={() => setStatusOpen(true)}
+              className="p-1 rounded hover:bg-background text-blue-500 hover:text-blue-700 transition-colors"
+              title="Check flight status"
+            >
+              <Radar className="h-3 w-3" />
+            </button>
+          )}
+          <button
+            onClick={() => onEdit(event)}
+            className="p-1 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+            title="Edit event"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            onClick={() => onDelete(event.id)}
+            className="p-1 rounded hover:bg-background text-muted-foreground hover:text-destructive transition-colors"
+            title="Delete event"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+      {isFlight && (
+        <FlightStatusModal event={event} open={statusOpen} onOpenChange={setStatusOpen} />
+      )}
+    </>
+  )
 }
 
 export default function BlockView({ timeline, onEdit, onDelete }: Props) {
@@ -48,46 +113,14 @@ export default function BlockView({ timeline, onEdit, onDelete }: Props) {
 
             {/* Event list */}
             <div className="p-3 space-y-2">
-              {events.map(event => {
-                const cfg = TYPE_CONFIG[event.type] ?? TYPE_CONFIG.custom
-                return (
-                  <div
-                    key={event.id}
-                    className="group flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className={`${cfg.color} rounded-md p-1.5 shrink-0 mt-0.5`}>
-                      <cfg.icon className="h-3 w-3 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground leading-snug truncate">
-                        {event.title}
-                      </p>
-                      {(event.start_time || event.location) && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {fmt12h(event.start_time)}
-                          {event.location ? ` · ${event.location}` : ''}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button
-                        onClick={() => onEdit(event)}
-                        className="p-1 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
-                        title="Edit event"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(event.id)}
-                        className="p-1 rounded hover:bg-background text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete event"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+              {events.map(event => (
+                <BlockEventRow
+                  key={event.id}
+                  event={event}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))}
             </div>
           </div>
         )
