@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Document, ParsedEventData } from '@/types'
 
@@ -19,9 +20,9 @@ const ACCEPTED = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'applica
 
 export default function DocumentUpload({ tripId, onComplete }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = useState(false)
+  const [dragging, setDragging]   = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]         = useState('')
 
   const handleFile = async (file: File) => {
     if (!ACCEPTED.includes(file.type)) {
@@ -34,8 +35,7 @@ export default function DocumentUpload({ tripId, onComplete }: Props) {
       const form = new FormData()
       form.append('file', file)
       form.append('tripId', tripId)
-
-      const res = await fetch('/api/parse-document', { method: 'POST', body: form })
+      const res  = await fetch('/api/parse-document', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `Upload failed (${res.status})`)
       onComplete(data as UploadResult)
@@ -67,21 +67,28 @@ export default function DocumentUpload({ tripId, onComplete }: Props) {
         onDrop={onDrop}
         onClick={() => !uploading && inputRef.current?.click()}
         className={`rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-colors ${
-          dragging ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+          dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'
         } ${uploading ? 'opacity-50 cursor-wait' : ''}`}
       >
-        <p className="text-3xl mb-2">📎</p>
+        <div className="flex justify-center mb-3">
+          <div className="bg-primary/10 rounded-full p-3">
+            <Upload className="h-6 w-6 text-primary" />
+          </div>
+        </div>
         {uploading ? (
-          <p className="text-sm font-medium text-blue-600">Uploading & parsing…</p>
+          <p className="text-sm font-medium text-primary">Uploading &amp; parsing…</p>
         ) : (
           <>
-            <p className="text-sm font-medium text-slate-700">Drop a booking confirmation here</p>
-            <p className="text-xs text-slate-400 mt-1">or click to browse — JPG, PNG, PDF supported</p>
+            <p className="text-sm font-semibold text-foreground">Drop your travel documents here</p>
+            <p className="text-xs text-muted-foreground mt-1">Or click to browse · PDF, PNG, JPG up to 10MB</p>
+            <Button size="sm" variant="outline" className="mt-4 pointer-events-none" tabIndex={-1}>
+              Select Files
+            </Button>
           </>
         )}
       </div>
       <input ref={inputRef} type="file" accept={ACCEPTED.join(',')} className="hidden" onChange={onInputChange} />
-      {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+      {error && <p className="text-sm text-destructive mt-2">{error}</p>}
     </div>
   )
 }
