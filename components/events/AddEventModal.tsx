@@ -92,9 +92,9 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
         end_time: editEvent.end_time ?? '',
         location: editEvent.location ?? '',
         confirmation_code: editEvent.confirmation_code ?? '',
-        flight_number: (editEvent.data as FlightData)?.flight_number ?? '',
-        origin:        (editEvent.data as FlightData)?.origin ?? '',
-        destination:   (editEvent.data as FlightData)?.destination ?? '',
+        flight_number: (editEvent.data as unknown as FlightData)?.flight_number ?? '',
+        origin:        (editEvent.data as unknown as FlightData)?.origin ?? '',
+        destination:   (editEvent.data as unknown as FlightData)?.destination ?? '',
         cost: editEvent.cost != null ? String(editEvent.cost) : '',
         currency: editEvent.currency,
         notes: editEvent.notes ?? '',
@@ -144,9 +144,9 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
         end_time: parsed.end_time ?? '',
         location: parsed.location ?? '',
         confirmation_code: parsed.confirmation_code ?? '',
-        flight_number: (parsed.data as FlightData)?.flight_number ?? '',
-        origin:        (parsed.data as FlightData)?.origin ?? '',
-        destination:   (parsed.data as FlightData)?.destination ?? '',
+        flight_number: (parsed.data as unknown as FlightData)?.flight_number ?? '',
+        origin:        (parsed.data as unknown as FlightData)?.origin ?? '',
+        destination:   (parsed.data as unknown as FlightData)?.destination ?? '',
         cost: parsed.cost != null ? String(parsed.cost) : '',
         currency: parsed.currency ?? 'USD',
         notes: parsed.notes ?? '',
@@ -343,49 +343,51 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
 
         {/* Flight number + look-up */}
         {form.type === 'flight' && (
-          <div className="space-y-1">
-            <Label htmlFor="flight_number">Flight number</Label>
-            <div className="flex gap-2">
-              <Input
-                id="flight_number"
-                placeholder="e.g. AA100, UA1"
-                value={form.flight_number}
-                onChange={e => { set('flight_number')(e); setFlightFilled(false); setFlightLookupError(null) }}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={lookupFlight}
-                disabled={!form.flight_number.trim() || lookingUpFlight}
-                className="shrink-0 gap-1.5"
-              >
-                {lookingUpFlight
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <Radar className="h-3.5 w-3.5" />
-                }
-                {flightFilled ? 'Re-lookup' : 'Look up'}
-              </Button>
-            </div>
-            {flightFilled && (
-              <p className="text-xs text-green-700 flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                Form filled from live flight data — edit as needed
-              </p>
-            )}
-            {flightLookupError && (
-              <p className="text-xs text-destructive">{flightLookupError}</p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="origin">From</Label>
-              <Input id="origin" placeholder="e.g. New York (JFK)" value={form.origin} onChange={set('origin')} />
+              <Label htmlFor="flight_number">Flight number</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="flight_number"
+                  placeholder="e.g. AA100, UA1"
+                  value={form.flight_number}
+                  onChange={e => { set('flight_number')(e); setFlightFilled(false); setFlightLookupError(null) }}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={lookupFlight}
+                  disabled={!form.flight_number.trim() || lookingUpFlight}
+                  className="shrink-0 gap-1.5"
+                >
+                  {lookingUpFlight
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Radar className="h-3.5 w-3.5" />
+                  }
+                  {flightFilled ? 'Re-lookup' : 'Look up'}
+                </Button>
+              </div>
+              {flightFilled && (
+                <p className="text-xs text-green-700 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Form filled from live flight data — edit as needed
+                </p>
+              )}
+              {flightLookupError && (
+                <p className="text-xs text-destructive">{flightLookupError}</p>
+              )}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="destination">To</Label>
-              <Input id="destination" placeholder="e.g. London (LHR)" value={form.destination} onChange={set('destination')} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="origin">From</Label>
+                <Input id="origin" placeholder="e.g. New York (JFK)" value={form.origin} onChange={set('origin')} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="destination">To</Label>
+                <Input id="destination" placeholder="e.g. London (LHR)" value={form.destination} onChange={set('destination')} />
+              </div>
             </div>
           </div>
         )}
