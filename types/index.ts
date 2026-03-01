@@ -180,6 +180,39 @@ export interface ParsedEventData {
   confidence: number // 0.0 – 1.0
 }
 
+// Lists — Checklist items
+export type ChecklistCategory = 'packing' | 'grocery' | 'souvenirs' | 'food_to_try' | 'other'
+
+export interface ChecklistItem {
+  id: string
+  trip_id: string
+  category: ChecklistCategory
+  title: string
+  notes: string | null
+  quantity: number | null
+  checked: boolean
+  created_by: string
+  created_at: string
+}
+
+// Lists — Places to Visit
+export type PlaceCategory = 'food_drink' | 'things_to_do' | 'nature' | 'shopping' | 'work_friendly'
+export type PlaceStatus = 'pending' | 'approved'
+
+export interface Place {
+  id: string
+  trip_id: string
+  category: PlaceCategory
+  name: string
+  location: string | null
+  notes: string | null
+  status: PlaceStatus
+  rating: number | null
+  url: string | null
+  created_by: string
+  created_at: string
+}
+
 // Balance summary for expense tracker
 export interface Balance {
   userId: string

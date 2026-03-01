@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import type { EventType } from '@/types'
+import type { Event, EventType } from '@/types'
 
 const EVENT_TYPES: { value: EventType; label: string; icon: string }[] = [
   { value: 'flight',     label: 'Flight',      icon: '✈️' },
@@ -33,12 +33,46 @@ const empty = {
   notes: '',
 }
 
-export default function AddEventModal({ tripId }: { tripId: string }) {
+interface Props {
+  tripId: string
+  /** When provided, the modal is in edit mode and controlled externally */
+  event?: Event
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export default function AddEventModal({ tripId, event: editEvent, open: controlledOpen, onOpenChange }: Props) {
   const router = useRouter()
+  const isEditMode = Boolean(editEvent)
+  const isControlled = controlledOpen !== undefined
+
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState(empty)
+
+  // Sync form when editing event changes
+  useEffect(() => {
+    if (editEvent) {
+      setForm({
+        type: editEvent.type,
+        title: editEvent.title,
+        date: editEvent.date,
+        start_time: editEvent.start_time ?? '',
+        end_time: editEvent.end_time ?? '',
+        location: editEvent.location ?? '',
+        confirmation_code: editEvent.confirmation_code ?? '',
+        cost: editEvent.cost != null ? String(editEvent.cost) : '',
+        currency: editEvent.currency,
+        notes: editEvent.notes ?? '',
+      })
+    } else {
+      setForm(empty)
+    }
+  }, [editEvent])
+
+  const modalOpen = isControlled ? controlledOpen! : open
+  const setModalOpen = isControlled ? onOpenChange! : setOpen
 
   const set = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -49,27 +83,35 @@ export default function AddEventModal({ tripId }: { tripId: string }) {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tripId,
-          type: form.type,
-          title: form.title,
-          date: form.date,
-          start_time: form.start_time || null,
-          end_time: form.end_time || null,
-          location: form.location || null,
-          confirmation_code: form.confirmation_code || null,
-          cost: form.cost ? parseFloat(form.cost) : null,
-          currency: form.currency,
-          notes: form.notes || null,
-          data: {},
-        }),
-      })
-      if (!res.ok) throw new Error('Failed to add event')
-      setForm(empty)
-      setOpen(false)
+      const payload = {
+        type: form.type,
+        title: form.title,
+        date: form.date,
+        start_time: form.start_time || null,
+        end_time: form.end_time || null,
+        location: form.location || null,
+        confirmation_code: form.confirmation_code || null,
+        cost: form.cost ? parseFloat(form.cost) : null,
+        currency: form.currency,
+        notes: form.notes || null,
+        data: editEvent?.data ?? {},
+      }
+
+      const res = isEditMode
+        ? await fetch(`/api/events/${editEvent!.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+        : await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tripId, ...payload }),
+          })
+
+      if (!res.ok) throw new Error(isEditMode ? 'Failed to update event' : 'Failed to add event')
+      if (!isEditMode) setForm(empty)
+      setModalOpen(false)
       router.refresh()
     } catch {
       setError('Something went wrong. Please try again.')
@@ -78,15 +120,11 @@ export default function AddEventModal({ tripId }: { tripId: string }) {
     }
   }
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">+ Add Event</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Add an event</DialogTitle>
-        </DialogHeader>
+  const dialogContent = (
+    <DialogContent className="sm:max-w-lg">
+      <DialogHeader>
+        <DialogTitle>{isEditMode ? 'Edit event' : 'Add an event'}</DialogTitle>
+      </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           {/* Event type selector */}
@@ -168,11 +206,29 @@ export default function AddEventModal({ tripId }: { tripId: string }) {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? 'Adding…' : 'Add event'}</Button>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? (isEditMode ? 'Saving…' : 'Adding…') : (isEditMode ? 'Save changes' : 'Add event')}
+            </Button>
           </div>
         </form>
       </DialogContent>
+  )
+
+  if (isControlled) {
+    return (
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        {dialogContent}
+      </Dialog>
+    )
+  }
+
+  return (
+    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">+ Add event</Button>
+      </DialogTrigger>
+      {dialogContent}
     </Dialog>
   )
 }
