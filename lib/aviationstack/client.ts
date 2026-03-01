@@ -43,7 +43,8 @@ export async function fetchFlightStatus(
   if (!apiKey) return null
 
   try {
-    // AviationStack free tier requires http
+    // AviationStack requires access_key as a query parameter (no header auth).
+    // This runs server-side only — the key is never exposed to the client.
     const url = `http://api.aviationstack.com/v1/flights?access_key=${encodeURIComponent(apiKey)}&flight_iata=${encodeURIComponent(flightIata)}`
     const res = await fetch(url, { cache: 'no-store' })
     if (!res.ok) return null

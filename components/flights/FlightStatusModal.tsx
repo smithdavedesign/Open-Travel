@@ -212,7 +212,7 @@ export default function FlightStatusModal({ event, open, onOpenChange }: Props) 
                     {status.airline_name} · {status.flight_iata}
                   </p>
                 </div>
-                <Badge className={statusCfg.className}>
+                <Badge className={statusCfg.className} aria-label={`Flight status: ${statusCfg.label}`}>
                   {statusCfg.label}
                 </Badge>
               </div>
