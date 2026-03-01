@@ -31,6 +31,8 @@ const empty = {
   location: '',
   confirmation_code: '',
   flight_number: '',
+  origin: '',
+  destination: '',
   cost: '',
   currency: 'USD',
   notes: '',
@@ -91,6 +93,8 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
         location: editEvent.location ?? '',
         confirmation_code: editEvent.confirmation_code ?? '',
         flight_number: (editEvent.data as FlightData)?.flight_number ?? '',
+        origin:        (editEvent.data as FlightData)?.origin ?? '',
+        destination:   (editEvent.data as FlightData)?.destination ?? '',
         cost: editEvent.cost != null ? String(editEvent.cost) : '',
         currency: editEvent.currency,
         notes: editEvent.notes ?? '',
@@ -141,6 +145,8 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
         location: parsed.location ?? '',
         confirmation_code: parsed.confirmation_code ?? '',
         flight_number: (parsed.data as FlightData)?.flight_number ?? '',
+        origin:        (parsed.data as FlightData)?.origin ?? '',
+        destination:   (parsed.data as FlightData)?.destination ?? '',
         cost: parsed.cost != null ? String(parsed.cost) : '',
         currency: parsed.currency ?? 'USD',
         notes: parsed.notes ?? '',
@@ -170,11 +176,13 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
 
       setForm(f => ({
         ...f,
-        title:      `${status.airline_name} · ${status.flight_iata}`,
-        location:   `${status.arrival.airport} (${status.arrival.iata})`,
-        date:       isoToDate(status.departure.scheduled) || f.date,
-        start_time: isoToTime(status.departure.scheduled) || f.start_time,
-        end_time:   isoToTime(status.arrival.scheduled)   || f.end_time,
+        title:       `${status.airline_name} · ${status.flight_iata}`,
+        origin:      `${status.departure.airport} (${status.departure.iata})`,
+        destination: `${status.arrival.airport} (${status.arrival.iata})`,
+        location:    `${status.arrival.airport} (${status.arrival.iata})`,
+        date:        isoToDate(status.departure.scheduled) || f.date,
+        start_time:  isoToTime(status.departure.scheduled) || f.start_time,
+        end_time:    isoToTime(status.arrival.scheduled)   || f.end_time,
       }))
       setFlightFilled(true)
     } catch {
@@ -203,7 +211,12 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
         currency: form.currency,
         notes: form.notes || null,
         data: form.type === 'flight'
-          ? { ...(editEvent?.data ?? {}), flight_number: form.flight_number || null }
+          ? {
+              ...(editEvent?.data ?? {}),
+              flight_number: form.flight_number || null,
+              origin:        form.origin || null,
+              destination:   form.destination || null,
+            }
           : (editEvent?.data ?? {}),
       }
 
@@ -364,6 +377,16 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
             {flightLookupError && (
               <p className="text-xs text-destructive">{flightLookupError}</p>
             )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="origin">From</Label>
+              <Input id="origin" placeholder="e.g. New York (JFK)" value={form.origin} onChange={set('origin')} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="destination">To</Label>
+              <Input id="destination" placeholder="e.g. London (LHR)" value={form.destination} onChange={set('destination')} />
+            </div>
           </div>
         )}
 
