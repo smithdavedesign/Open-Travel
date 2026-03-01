@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, Luggage, ShoppingBag, Star, UtensilsCrossed, List, MoreVertical, Search, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, Luggage, ShoppingBag, Star, UtensilsCrossed, List, MoreVertical, Search, ChevronRight, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ChecklistItem, ChecklistCategory } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,8 @@ export default function ChecklistPanel({ tripId, initialItems }: Props) {
   const [newTitle, setNewTitle]     = useState('')
   const [adding, setAdding]         = useState(false)
   const [saving, setSaving]         = useState(false)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editForm, setEditForm]     = useState({ title: '', notes: '', quantity: '' })
 
   const activeCfg = CATEGORIES.find(c => c.id === activeCategory)!
   const allCategoryItems = items.filter(i => i.category === activeCategory)
@@ -72,6 +74,32 @@ export default function ChecklistPanel({ tripId, initialItems }: Props) {
       if (next) toast.success(`"${item.title}" checked off`)
     } catch {
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, checked: item.checked } : i))
+      toast.error('Failed to update item')
+    }
+  }
+
+  function startEdit(item: ChecklistItem) {
+    setEditingItemId(item.id)
+    setEditForm({ title: item.title, notes: item.notes ?? '', quantity: item.quantity?.toString() ?? '' })
+  }
+
+  async function saveEdit(item: ChecklistItem) {
+    if (!editForm.title.trim()) return
+    const updates = {
+      title: editForm.title.trim(),
+      notes: editForm.notes || null,
+      quantity: editForm.quantity ? parseInt(editForm.quantity) : null,
+    }
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, ...updates } : i))
+    setEditingItemId(null)
+    try {
+      await fetch(`/api/trips/${tripId}/checklists/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+    } catch {
+      setItems(prev => prev.map(i => i.id === item.id ? item : i))
       toast.error('Failed to update item')
     }
   }
@@ -193,25 +221,61 @@ export default function ChecklistPanel({ tripId, initialItems }: Props) {
                   item.checked ? 'bg-muted/50 border-border/50' : 'bg-card border-border hover:border-border'
                 }`}
               >
-                <Checkbox checked={item.checked} onCheckedChange={() => toggleItem(item)} className="shrink-0" />
-                <span className={`flex-1 text-sm ${item.checked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                  {item.title}
-                </span>
-                {item.notes && (
-                  <span className="text-xs text-muted-foreground truncate max-w-[120px]">{item.notes}</span>
+                {editingItemId === item.id ? (
+                  /* Inline edit form */
+                  <div className="flex-1 flex items-center gap-2 flex-wrap">
+                    <Input
+                      autoFocus
+                      value={editForm.title}
+                      onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(item); if (e.key === 'Escape') setEditingItemId(null) }}
+                      className="flex-1 h-7 text-sm"
+                    />
+                    <Input
+                      placeholder="Notes…"
+                      value={editForm.notes}
+                      onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                      className="w-32 h-7 text-sm"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Qty"
+                      value={editForm.quantity}
+                      onChange={e => setEditForm(f => ({ ...f, quantity: e.target.value }))}
+                      className="w-16 h-7 text-sm"
+                    />
+                    <button onClick={() => saveEdit(item)} className="text-xs text-primary hover:underline font-medium">Save</button>
+                    <button onClick={() => setEditingItemId(null)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+                  </div>
+                ) : (
+                  <>
+                    <Checkbox checked={item.checked} onCheckedChange={() => toggleItem(item)} className="shrink-0" />
+                    <span className={`flex-1 text-sm ${item.checked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                      {item.title}
+                      {item.quantity && item.quantity > 1 && (
+                        <span className="ml-1 text-xs text-muted-foreground">×{item.quantity}</span>
+                      )}
+                    </span>
+                    {item.notes && (
+                      <span className="text-xs text-muted-foreground truncate max-w-[120px]">{item.notes}</span>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-foreground transition-all">
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => startEdit(item)}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" />Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => deleteItem(item.id, item.title)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
                 )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-foreground transition-all">
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => deleteItem(item.id, item.title)} className="text-destructive focus:text-destructive">
-                      <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             ))}
           </div>

@@ -51,6 +51,20 @@ Design system overhaul and visual alignment with the Figma Make prototype. All h
 
 ---
 
+## Full Edit Capability — Completed
+
+Users can now edit anything they can create. Follows the dual-mode modal/inline pattern established by `AddEventModal`.
+
+| Entity | Edit UI | API | Notes |
+|--------|---------|-----|-------|
+| **Trips** | Settings page — always-editable form (name, destinations, dates, status) | PATCH `/api/trips/[tripId]` (existing) | Owner-only Danger Zone with two-step delete confirmation → redirects to `/trips` |
+| **Member roles** | MemberList — inline `<select>` dropdown per non-owner member | PATCH `/api/trips/[tripId]/members/[userId]` (new) | Owner-only; cannot change own role |
+| **Expenses** | AddExpenseModal — dual-mode via optional `expense?` prop; ExpenseList pencil icon | PATCH `/api/expenses/[expenseId]` (new) | Deletes + rebuilds splits on save; full split mode support |
+| **Checklist items** | ChecklistPanel — inline edit row (title, notes, qty) on pencil click | PATCH `/api/trips/[tripId]/checklists/[itemId]` (existing) | Optimistic update, rollback on fail |
+| **Places** | PlacesPanel — reuses add dialog, pre-filled for edit; pencil in dropdown | PATCH `/api/trips/[tripId]/places/[placeId]` (existing) | Single dialog, dual-mode via `editingPlace` state |
+
+---
+
 ## Not started / In progress (PRD features)
 
 | Feature | Priority | Status |

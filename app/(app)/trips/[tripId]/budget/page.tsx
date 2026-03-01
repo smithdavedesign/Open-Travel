@@ -41,6 +41,7 @@ export default function BudgetPage() {
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [showSettle, setShowSettle] = useState(false)
   const [editingBudget, setEditingBudget] = useState(false)
   const [budgetInput, setBudgetInput] = useState('')
@@ -307,6 +308,7 @@ export default function BudgetPage() {
                   members={members}
                   currentUserId={currentUserId ?? ''}
                   onDelete={handleDelete}
+                  onEdit={setEditingExpense}
                 />
               </div>
             </TabsContent>
@@ -320,6 +322,17 @@ export default function BudgetPage() {
           members={members}
           currentUserId={currentUserId}
           onClose={() => setShowAdd(false)}
+          onSaved={fetchData}
+        />
+      )}
+
+      {editingExpense && currentUserId && (
+        <AddExpenseModal
+          tripId={tripId}
+          members={members}
+          currentUserId={currentUserId}
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
           onSaved={fetchData}
         />
       )}
