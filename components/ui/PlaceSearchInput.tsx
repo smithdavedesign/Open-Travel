@@ -10,6 +10,12 @@ export interface PlaceSuggestion {
   lat: number
 }
 
+interface SuggestionItem {
+  mapboxId: string
+  name: string
+  address: string
+}
+
 interface Props {
   value: string
   onChange: (value: string) => void
@@ -30,11 +36,13 @@ export default function PlaceSearchInput({
   mapboxToken,
   hasCoords = false,
 }: Props) {
-  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [retrieving, setRetrieving] = useState(false)
   const [open, setOpen] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const sessionToken = useRef(crypto.randomUUID())
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -47,16 +55,15 @@ export default function PlaceSearchInput({
       setLoading(true)
       try {
         const res = await fetch(
-          `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(value)}&access_token=${mapboxToken}&limit=5&types=poi,address,place`
+          `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(value)}&access_token=${mapboxToken}&session_token=${sessionToken.current}&limit=6&language=en`
         )
         if (!res.ok) return
         const data = await res.json()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const results: PlaceSuggestion[] = (data.features ?? []).map((f: any) => ({
-          name: f.properties.name ?? f.properties.full_address,
-          address: f.properties.full_address ?? f.properties.place_formatted ?? '',
-          lng: f.geometry.coordinates[0],
-          lat: f.geometry.coordinates[1],
+        const results: SuggestionItem[] = (data.suggestions ?? []).map((s: any) => ({
+          mapboxId: s.mapbox_id,
+          name: s.name,
+          address: s.place_formatted ?? s.full_address ?? '',
         }))
         setSuggestions(results)
         setOpen(results.length > 0)
@@ -65,7 +72,7 @@ export default function PlaceSearchInput({
       } finally {
         setLoading(false)
       }
-    }, 300)
+    }, 600)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [value, mapboxToken])
 
@@ -80,6 +87,34 @@ export default function PlaceSearchInput({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  async function handleSelect(item: SuggestionItem) {
+    setOpen(false)
+    setRetrieving(true)
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/search/searchbox/v1/retrieve/${item.mapboxId}?access_token=${mapboxToken}&session_token=${sessionToken.current}`
+      )
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const feature = data.features?.[0] as any
+      if (!feature) throw new Error()
+      onSelect({
+        name: item.name,
+        address: item.address,
+        lng: feature.geometry.coordinates[0],
+        lat: feature.geometry.coordinates[1],
+      })
+      // Reset session token after a completed session (suggest → retrieve)
+      sessionToken.current = crypto.randomUUID()
+    } catch {
+      // Fall back: select without coords so user can still save
+      onSelect({ name: item.name, address: item.address, lng: 0, lat: 0 })
+    } finally {
+      setRetrieving(false)
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
@@ -92,10 +127,10 @@ export default function PlaceSearchInput({
           placeholder={placeholder}
           className="w-full pl-8 pr-8 h-9 text-sm rounded-md border border-input bg-background px-3 py-1 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         />
-        {loading && (
+        {(loading || retrieving) && (
           <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground animate-spin" />
         )}
-        {!loading && value && onClear && (
+        {!loading && !retrieving && value && onClear && (
           <button
             type="button"
             onMouseDown={e => { e.preventDefault(); onClear() }}
@@ -122,14 +157,13 @@ export default function PlaceSearchInput({
               className="w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-muted transition-colors border-b last:border-0"
               onMouseDown={e => {
                 e.preventDefault()
-                onSelect(s)
-                setOpen(false)
+                handleSelect(s)
               }}
             >
               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{s.name}</p>
-                {s.address !== s.name && (
+                {s.address && s.address !== s.name && (
                   <p className="text-xs text-muted-foreground truncate">{s.address}</p>
                 )}
               </div>
