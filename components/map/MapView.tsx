@@ -59,27 +59,35 @@ export default function MapView({ places, mapboxToken }: Props) {
   const [geocoded, setGeocoded] = useState<GeocodedPlace[]>([])
   const [activeCategory, setActiveCategory] = useState<PlaceCategory | 'all'>('all')
 
-  // Geocode all places with locations (batched for performance)
+  // Build geocoded list: use stored coords where available, geocode the rest
   useEffect(() => {
     let cancelled = false
     async function run() {
-      const withLocation = places.filter((p) => p.location?.trim())
+      // Places that already have stored coordinates — instant, no API call
+      const withCoords: GeocodedPlace[] = places
+        .filter((p) => p.lng != null && p.lat != null)
+        .map((p) => ({ ...p, lng: p.lng!, lat: p.lat! }))
+
+      // Places that need geocoding (have a location string but no stored coords)
+      const needsGeocode = places.filter((p) => (p.lng == null || p.lat == null) && p.location?.trim())
+
       const BATCH_SIZE = 5
-      const results: GeocodedPlace[] = []
-      for (let i = 0; i < withLocation.length; i += BATCH_SIZE) {
+      const geocodedResults: GeocodedPlace[] = []
+      for (let i = 0; i < needsGeocode.length; i += BATCH_SIZE) {
         if (cancelled) return
-        const batch = withLocation.slice(i, i + BATCH_SIZE)
+        const batch = needsGeocode.slice(i, i + BATCH_SIZE)
         const coords = await Promise.all(
           batch.map((place) => geocodeLocation(place.location!, mapboxToken))
         )
         for (let j = 0; j < batch.length; j++) {
           if (coords[j]) {
-            results.push({ ...batch[j], lng: coords[j]![0], lat: coords[j]![1] })
+            geocodedResults.push({ ...batch[j], lng: coords[j]![0], lat: coords[j]![1] })
           }
         }
       }
+
       if (!cancelled) {
-        setGeocoded(results)
+        setGeocoded([...withCoords, ...geocodedResults])
         setLoading(false)
       }
     }
@@ -224,7 +232,7 @@ export default function MapView({ places, mapboxToken }: Props) {
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                Geocoding {placesWithLocation.length} places…
+                Loading places…
               </p>
             </div>
           </div>
