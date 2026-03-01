@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import PlaceSearchInput from '@/components/ui/PlaceSearchInput'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const CATEGORIES: { id: PlaceCategory; label: string; icon: React.ElementType; color: string; iconBg: string }[] = [
@@ -30,7 +31,9 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
   const [dialogOpen, setDialogOpen]   = useState(false)
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [saving, setSaving]           = useState(false)
-  const [form, setForm]               = useState({ name: '', location: '', notes: '', url: '' })
+  const [form, setForm]               = useState({ name: '', location: '', lng: null as number | null, lat: null as number | null, notes: '', url: '' })
+
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 
   const activeCfg = CATEGORIES.find(c => c.id === activeCategory)!
   const allCategoryPlaces = places.filter(p => p.category === activeCategory)
@@ -46,20 +49,20 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
 
   function openAddDialog() {
     setEditingPlace(null)
-    setForm({ name: '', location: '', notes: '', url: '' })
+    setForm({ name: '', location: '', lng: null, lat: null, notes: '', url: '' })
     setDialogOpen(true)
   }
 
   function openEditDialog(place: Place) {
     setEditingPlace(place)
-    setForm({ name: place.name, location: place.location ?? '', notes: place.notes ?? '', url: place.url ?? '' })
+    setForm({ name: place.name, location: place.location ?? '', lng: place.lng ?? null, lat: place.lat ?? null, notes: place.notes ?? '', url: place.url ?? '' })
     setDialogOpen(true)
   }
 
   function closeDialog() {
     setDialogOpen(false)
     setEditingPlace(null)
-    setForm({ name: '', location: '', notes: '', url: '' })
+    setForm({ name: '', location: '', lng: null, lat: null, notes: '', url: '' })
   }
 
   async function savePlace() {
@@ -67,7 +70,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
     setSaving(true)
     try {
       if (editingPlace) {
-        const updates = { name: form.name.trim(), location: form.location || null, notes: form.notes || null, url: form.url || null }
+        const updates = { name: form.name.trim(), location: form.location || null, lng: form.lng, lat: form.lat, notes: form.notes || null, url: form.url || null }
         const res = await fetch(`/api/trips/${tripId}/places/${editingPlace.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -81,7 +84,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
         const res = await fetch(`/api/trips/${tripId}/places`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...form, name: form.name.trim(), category: activeCategory }),
+          body: JSON.stringify({ ...form, name: form.name.trim(), category: activeCategory, lng: form.lng, lat: form.lat }),
         })
         if (!res.ok) throw new Error()
         const place: Place = await res.json()
@@ -182,12 +185,20 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                 </DialogHeader>
                 <div className="space-y-3 mt-2">
                   <div className="space-y-1">
-                    <Label htmlFor="place-name">Name *</Label>
-                    <Input id="place-name" placeholder="e.g. Ichiran Ramen" value={form.name} onChange={set('name')} />
+                    <Label>Search or enter a place *</Label>
+                    <PlaceSearchInput
+                      mapboxToken={mapboxToken}
+                      value={form.name}
+                      onChange={v => setForm(f => ({ ...f, name: v, lng: null, lat: null }))}
+                      onSelect={s => setForm(f => ({ ...f, name: s.name, location: s.address, lng: s.lng, lat: s.lat }))}
+                      onClear={() => setForm(f => ({ ...f, name: '', location: '', lng: null, lat: null }))}
+                      hasCoords={form.lng !== null}
+                      placeholder="e.g. Ichiran Ramen, Shibuya"
+                    />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="place-location">Location / Area</Label>
-                    <Input id="place-location" placeholder="e.g. Shibuya, Tokyo" value={form.location} onChange={set('location')} />
+                    <Label htmlFor="place-location">Address</Label>
+                    <Input id="place-location" placeholder="Auto-filled from search, or type manually" value={form.location} onChange={set('location')} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="place-url">URL</Label>

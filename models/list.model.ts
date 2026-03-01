@@ -73,7 +73,7 @@ export async function createPlace(
 
 export async function updatePlace(
   placeId: string,
-  updates: Partial<Pick<Place, 'name' | 'location' | 'notes' | 'status' | 'rating' | 'url' | 'category'>>
+  updates: Partial<Pick<Place, 'name' | 'location' | 'lng' | 'lat' | 'notes' | 'status' | 'rating' | 'url' | 'category'>>
 ): Promise<Place> {
   const { data, error } = await supabase
     .from('trip_places')

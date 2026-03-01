@@ -43,7 +43,7 @@ export async function getPlaces(tripId: string): Promise<Place[]> {
 export async function createPlace(
   tripId: string,
   userId: string,
-  data: { name: string; category: PlaceCategory; location?: string; notes?: string; url?: string }
+  data: { name: string; category: PlaceCategory; location?: string; lng?: number | null; lat?: number | null; notes?: string; url?: string }
 ): Promise<Place> {
   return ListModel.createPlace({
     trip_id: tripId,
@@ -51,6 +51,8 @@ export async function createPlace(
     category: data.category,
     name: data.name,
     location: data.location ?? null,
+    lng: data.lng ?? null,
+    lat: data.lat ?? null,
     notes: data.notes ?? null,
     status: 'pending',
     rating: null,

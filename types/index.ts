@@ -205,6 +205,8 @@ export interface Place {
   category: PlaceCategory
   name: string
   location: string | null
+  lng: number | null
+  lat: number | null
   notes: string | null
   status: PlaceStatus
   rating: number | null
