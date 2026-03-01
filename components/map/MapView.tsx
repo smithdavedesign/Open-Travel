@@ -218,7 +218,7 @@ export default function MapView({ places, mapboxToken }: Props) {
       </div>
 
       {/* Map container */}
-      <div className="relative rounded-xl overflow-hidden border" style={{ height: 'calc(100vh - 260px)', minHeight: '500px' }}>
+      <div className="relative rounded-xl overflow-hidden border">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80">
             <div className="flex flex-col items-center gap-2">
@@ -229,7 +229,7 @@ export default function MapView({ places, mapboxToken }: Props) {
             </div>
           </div>
         )}
-        <div ref={mapContainer} className="absolute inset-0" />
+        <div ref={mapContainer} style={{ height: 'calc(100vh - 260px)', minHeight: '500px' }} />
       </div>
 
       {/* Summary */}
