@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -125,6 +125,18 @@ export default function FlightStatusModal({ event, open, onOpenChange }: Props) 
   const flightData = event.data as unknown as FlightData | undefined
   const flightNumber = flightData?.flight_number ?? ''
 
+  // Trigger lookup when dialog opens (onOpenChange doesn't fire on programmatic open)
+  useEffect(() => {
+    if (open && !status && !loading) {
+      lookupStatus()
+    }
+    if (!open) {
+      setStatus(null)
+      setError(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   async function lookupStatus() {
     if (!flightNumber) {
       setError('No flight number available')
@@ -152,13 +164,6 @@ export default function FlightStatusModal({ event, open, onOpenChange }: Props) 
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen && !status && !loading) {
-      lookupStatus()
-    }
-    if (!nextOpen) {
-      setStatus(null)
-      setError(null)
-    }
     onOpenChange(nextOpen)
   }
 

@@ -170,11 +170,11 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
 
       setForm(f => ({
         ...f,
-        title:      f.title      || `${status.airline_name} · ${status.flight_iata}`,
-        location:   f.location   || `${status.arrival.airport} (${status.arrival.iata})`,
-        date:       f.date       || isoToDate(status.departure.scheduled),
-        start_time: f.start_time || isoToTime(status.departure.scheduled),
-        end_time:   f.end_time   || isoToTime(status.arrival.scheduled),
+        title:      `${status.airline_name} · ${status.flight_iata}`,
+        location:   `${status.arrival.airport} (${status.arrival.iata})`,
+        date:       isoToDate(status.departure.scheduled) || f.date,
+        start_time: isoToTime(status.departure.scheduled) || f.start_time,
+        end_time:   isoToTime(status.arrival.scheduled)   || f.end_time,
       }))
       setFlightFilled(true)
     } catch {
@@ -408,14 +408,14 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
 
   if (isControlled) {
     return (
-      <Dialog open={modalOpen} onOpenChange={open => !open && handleClose()}>
+      <Dialog open={modalOpen} onOpenChange={nextOpen => nextOpen ? setModalOpen(nextOpen) : handleClose()}>
         {dialogContent}
       </Dialog>
     )
   }
 
   return (
-    <Dialog open={modalOpen} onOpenChange={open => !open && handleClose()}>
+    <Dialog open={modalOpen} onOpenChange={nextOpen => nextOpen ? setModalOpen(nextOpen) : handleClose()}>
       <DialogTrigger asChild>
         <Button size="sm">+ Add event</Button>
       </DialogTrigger>
