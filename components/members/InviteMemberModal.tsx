@@ -29,7 +29,12 @@ export default function InviteMemberModal({ tripId }: { tripId: string }) {
       const data = await res.json()
       if (!res.ok) {
         setResult({ type: 'error', message: data.error ?? 'Failed to invite member.' })
+      } else if (data.invited) {
+        // New user — invite email sent
+        setResult({ type: 'success', message: `Invite sent to ${email}. They'll get an email to create their account and join the trip.` })
+        setEmail('')
       } else {
+        // Existing user — added directly
         setResult({ type: 'success', message: `${email} has been added to the trip.` })
         setEmail('')
         router.refresh()

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import MemberList from '@/components/members/MemberList'
 import InviteMemberModal from '@/components/members/InviteMemberModal'
+import PushNotificationToggle from '@/components/ui/PushNotificationToggle'
 import type { Trip, TripMember, TripStatus } from '@/types'
 
 const STATUSES: TripStatus[] = ['planning', 'active', 'completed', 'archived']
@@ -314,6 +315,15 @@ export default function TripSettingsPage() {
             <p className="text-sm text-slate-400">Only the trip owner can generate a share link.</p>
           )
         )}
+      </section>
+
+      {/* Notifications */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-6">
+        <h2 className="text-base font-semibold text-slate-900 mb-1">Notifications</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Get push alerts for flight changes, new expense splits, and trip updates.
+        </p>
+        <PushNotificationToggle />
       </section>
 
       {/* Duplicate trip */}

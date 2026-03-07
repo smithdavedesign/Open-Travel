@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil } from 'lucide-react'
+import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Place, PlaceCategory, PlaceStatus } from '@/types'
+import type { PlaceWithVotes, PlaceCategory, PlaceStatus } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,15 +21,15 @@ const CATEGORIES: { id: PlaceCategory; label: string; icon: React.ElementType; c
 
 interface Props {
   tripId: string
-  initialPlaces: Place[]
+  initialPlaces: PlaceWithVotes[]
 }
 
 export default function PlacesPanel({ tripId, initialPlaces }: Props) {
-  const [places, setPlaces]           = useState<Place[]>(initialPlaces)
+  const [places, setPlaces]           = useState<PlaceWithVotes[]>(initialPlaces)
   const [activeCategory, setActiveCategory] = useState<PlaceCategory>('food_drink')
   const [search, setSearch]           = useState('')
   const [dialogOpen, setDialogOpen]   = useState(false)
-  const [editingPlace, setEditingPlace] = useState<Place | null>(null)
+  const [editingPlace, setEditingPlace] = useState<PlaceWithVotes | null>(null)
   const [saving, setSaving]           = useState(false)
   const [form, setForm]               = useState({ name: '', location: '', lng: null as number | null, lat: null as number | null, notes: '', url: '' })
 
@@ -53,7 +53,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
     setDialogOpen(true)
   }
 
-  function openEditDialog(place: Place) {
+  function openEditDialog(place: PlaceWithVotes) {
     setEditingPlace(place)
     setForm({ name: place.name, location: place.location ?? '', lng: place.lng ?? null, lat: place.lat ?? null, notes: place.notes ?? '', url: place.url ?? '' })
     setDialogOpen(true)
@@ -77,8 +77,8 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
           body: JSON.stringify(updates),
         })
         if (!res.ok) throw new Error()
-        const updated: Place = await res.json()
-        setPlaces(prev => prev.map(p => p.id === updated.id ? updated : p))
+        const updated = await res.json()
+        setPlaces(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
         toast.success(`"${updated.name}" updated`)
       } else {
         const res = await fetch(`/api/trips/${tripId}/places`, {
@@ -87,8 +87,8 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
           body: JSON.stringify({ ...form, name: form.name.trim(), category: activeCategory, lng: form.lng, lat: form.lat }),
         })
         if (!res.ok) throw new Error()
-        const place: Place = await res.json()
-        setPlaces(prev => [...prev, place])
+        const place = await res.json()
+        setPlaces(prev => [...prev, { ...place, vote_count: 0, user_vote: null }])
         toast.success(`"${place.name}" added`)
       }
       closeDialog()
@@ -99,7 +99,34 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
     }
   }
 
-  async function toggleStatus(place: Place) {
+  async function castVote(place: PlaceWithVotes, dir: 1 | -1) {
+    const isSameVote = place.user_vote === dir
+    const newUserVote = isSameVote ? null : dir
+    const voteDelta = isSameVote ? -dir : (place.user_vote !== null ? dir - place.user_vote : dir)
+
+    // Optimistic update
+    setPlaces(prev => prev.map(p =>
+      p.id === place.id ? { ...p, user_vote: newUserVote, vote_count: p.vote_count + voteDelta } : p
+    ))
+
+    try {
+      if (isSameVote) {
+        await fetch(`/api/trips/${tripId}/places/${place.id}/vote`, { method: 'DELETE' })
+      } else {
+        await fetch(`/api/trips/${tripId}/places/${place.id}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vote: dir }),
+        })
+      }
+    } catch {
+      // Rollback on error
+      setPlaces(prev => prev.map(p => p.id === place.id ? place : p))
+      toast.error('Failed to save vote')
+    }
+  }
+
+  async function toggleStatus(place: PlaceWithVotes) {
     const next: PlaceStatus = place.status === 'pending' ? 'approved' : 'pending'
     setPlaces(prev => prev.map(p => p.id === place.id ? { ...p, status: next } : p))
     try {
@@ -288,6 +315,32 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                     ))}
                   </div>
                 )}
+
+                {/* Group voting row */}
+                <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/60">
+                  <button
+                    onClick={() => castVote(place, 1)}
+                    title="Upvote"
+                    className={`p-1 rounded transition-colors ${place.user_vote === 1 ? 'text-green-600' : 'text-muted-foreground/50 hover:text-green-500'}`}
+                  >
+                    <ThumbsUp className={`h-3.5 w-3.5 ${place.user_vote === 1 ? 'fill-green-600' : ''}`} />
+                  </button>
+                  <span className={`text-xs font-semibold tabular-nums min-w-[1.5ch] text-center ${
+                    place.vote_count > 0 ? 'text-green-600' : place.vote_count < 0 ? 'text-destructive' : 'text-muted-foreground'
+                  }`}>
+                    {place.vote_count > 0 ? `+${place.vote_count}` : place.vote_count}
+                  </span>
+                  <button
+                    onClick={() => castVote(place, -1)}
+                    title="Downvote"
+                    className={`p-1 rounded transition-colors ${place.user_vote === -1 ? 'text-destructive' : 'text-muted-foreground/50 hover:text-destructive'}`}
+                  >
+                    <ThumbsDown className={`h-3.5 w-3.5 ${place.user_vote === -1 ? 'fill-destructive' : ''}`} />
+                  </button>
+                  {place.vote_count >= 2 && (
+                    <span className="ml-auto text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Popular</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

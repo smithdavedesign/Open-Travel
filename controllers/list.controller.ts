@@ -1,5 +1,5 @@
 import * as ListModel from '@/models/list.model'
-import type { ChecklistItem, ChecklistCategory, Place, PlaceCategory, PlaceStatus } from '@/types'
+import type { ChecklistItem, ChecklistCategory, Place, PlaceCategory, PlaceStatus, PlaceWithVotes } from '@/types'
 
 // ── Checklist ──────────────────────────────────────────────────────────────
 
@@ -69,4 +69,21 @@ export async function updatePlace(
 
 export async function deletePlace(placeId: string): Promise<void> {
   return ListModel.deletePlace(placeId)
+}
+
+// ── Place Votes ─────────────────────────────────────────────────────────────
+
+export async function getPlacesWithVotes(tripId: string, userId: string): Promise<PlaceWithVotes[]> {
+  return ListModel.getPlacesWithVotes(tripId, userId)
+}
+
+export async function voteOnPlace(
+  placeId: string,
+  userId: string,
+  vote: 1 | -1 | null
+): Promise<void> {
+  if (vote === null) {
+    return ListModel.deleteVote(placeId, userId)
+  }
+  return ListModel.upsertVote(placeId, userId, vote)
 }

@@ -18,7 +18,7 @@ export default async function ListsPage({
   try {
     ;[checklistItems, places] = await Promise.all([
       ListController.getChecklistItems(tripId),
-      ListController.getPlaces(tripId),
+      ListController.getPlacesWithVotes(tripId, user.id),
     ])
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

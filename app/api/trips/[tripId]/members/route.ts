@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { adminSupabase } from '@/lib/supabase/admin'
 import * as TripController from '@/controllers/trip.controller'
 import { requireTripRole, ForbiddenError } from '@/lib/auth/rbac'
 import { NextRequest, NextResponse } from 'next/server'
@@ -38,9 +39,37 @@ export async function POST(
       .single()
 
     if (error || !profile) {
+      // No account yet — store a pending invite and send them a signup email
+      const normalizedEmail = email.toLowerCase().trim()
+
+      // Upsert the pending invite (replace if they were already invited)
+      const { data: invite, error: inviteErr } = await adminSupabase
+        .from('trip_invites')
+        .upsert(
+          { trip_id: tripId, email: normalizedEmail, role: role ?? 'editor', invited_by: user.id, accepted_at: null },
+          { onConflict: 'trip_id,email' }
+        )
+        .select('id')
+        .single()
+
+      if (inviteErr || !invite) {
+        return NextResponse.json({ error: 'Failed to create invite.' }, { status: 500 })
+      }
+
+      const acceptUrl = `${process.env.NEXT_PUBLIC_APP_URL}/accept-invite?token=${invite.id}`
+
+      const { error: emailErr } = await adminSupabase.auth.admin.inviteUserByEmail(normalizedEmail, {
+        redirectTo: acceptUrl,
+      })
+
+      // "User already registered" means they have an auth account but no profile row yet — uncommon but handle gracefully
+      if (emailErr && !emailErr.message.includes('already registered')) {
+        return NextResponse.json({ error: emailErr.message }, { status: 500 })
+      }
+
       return NextResponse.json(
-        { error: 'No Open Travel account found for that email. Ask them to sign up first.' },
-        { status: 404 }
+        { invited: true, message: `Invitation sent to ${normalizedEmail}` },
+        { status: 200 }
       )
     }
 

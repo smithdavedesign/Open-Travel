@@ -215,6 +215,21 @@ export interface Place {
   created_at: string
 }
 
+// Place vote — one row per user per place (+1 up, -1 down)
+export interface PlaceVote {
+  id: string
+  place_id: string
+  user_id: string
+  vote: 1 | -1
+  created_at: string
+}
+
+// Place enriched with aggregated vote data (used in PlacesPanel)
+export interface PlaceWithVotes extends Place {
+  vote_count: number        // net score: sum of all votes
+  user_vote: 1 | -1 | null // current user's own vote, null if not voted
+}
+
 // Balance summary for expense tracker
 export interface Balance {
   userId: string

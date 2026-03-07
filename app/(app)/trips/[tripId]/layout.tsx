@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import * as TripController from '@/controllers/trip.controller'
 import TripSidebar from '@/components/trips/TripSidebar'
 import TripRealtimeSync from '@/components/realtime/TripRealtimeSync'
+import OfflineBanner from '@/components/ui/OfflineBanner'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
@@ -116,6 +117,7 @@ export default async function TripLayout({
             {children}
           </div>
         </div>
+        <OfflineBanner />
       </div>
     </div>
   )

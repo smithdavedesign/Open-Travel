@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Calendar, Map, ListTodo, FileText,
-  DollarSign, Users, Plane, ChevronLeft, Settings,
+  DollarSign, Users, Plane, ChevronLeft, Settings, BookMarked,
 } from 'lucide-react'
 
 interface Props {
@@ -16,6 +16,8 @@ interface Props {
 
 const NAV_ITEMS = (base: string) => [
   { href: `${base}/itinerary`,        label: 'Itinerary',      icon: Calendar },
+  { href: `${base}/flights`,          label: 'Flights',        icon: Plane },
+  { href: `${base}/reservations`,     label: 'Reservations',   icon: BookMarked },
   { href: `${base}/map`,              label: 'Map',            icon: Map },
   { href: `${base}/lists`,            label: 'Lists',          icon: ListTodo },
   { href: `${base}/documents`,        label: 'Documents',      icon: FileText },

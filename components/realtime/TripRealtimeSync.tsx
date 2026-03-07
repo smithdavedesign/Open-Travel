@@ -37,6 +37,11 @@ export default function TripRealtimeSync({ tripId }: { tripId: string }) {
         { event: 'INSERT', schema: 'public', table: 'activity_feed', filter: `trip_id=eq.${tripId}` },
         () => router.refresh()
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'place_votes' },
+        () => router.refresh()
+      )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }

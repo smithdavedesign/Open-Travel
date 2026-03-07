@@ -63,12 +63,24 @@ export async function getEventsByTypeAndTrip(
   tripId: string,
   type: EventType
 ): Promise<Event[]> {
-  
+
   const { data, error } = await supabase
     .from('events')
     .select('*')
     .eq('trip_id', tripId)
     .eq('type', type)
+    .order('date', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
+export async function getReservationEvents(tripId: string): Promise<Event[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('trip_id', tripId)
+    .in('type', ['flight', 'hotel', 'car_rental'])
     .order('date', { ascending: true })
 
   if (error) throw error
