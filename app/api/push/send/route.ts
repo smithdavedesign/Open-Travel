@@ -5,8 +5,17 @@ import webpush from 'web-push'
 // Internal server-only endpoint — not exposed to clients
 // Called by controllers/services to send push notifications to trip members
 
+function vapidSubject(): string {
+  const raw = process.env.VAPID_SUBJECT ?? 'mailto:admin@example.com'
+  // Ensure the subject is a valid URL — prepend mailto: for bare email addresses
+  if (!raw.startsWith('http://') && !raw.startsWith('https://') && !raw.startsWith('mailto:')) {
+    return `mailto:${raw}`
+  }
+  return raw
+}
+
 webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT ?? 'mailto:admin@example.com',
+  vapidSubject(),
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '',
   process.env.VAPID_PRIVATE_KEY ?? ''
 )
