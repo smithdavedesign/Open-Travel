@@ -88,10 +88,10 @@ export default function ItineraryClient({ tripId, initialTimeline, weather }: Pr
       {/* Main column */}
       <div className="flex-1 min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-6 border-b border-slate-200">
           <h2 className="text-base font-semibold text-slate-900">Itinerary</h2>
-          <div className="flex items-center gap-3">
-            {/* View toggle — Figma ToggleGroup style */}
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            {/* View toggle */}
             <div className="flex items-center gap-1.5">
               <span className="text-sm text-muted-foreground hidden sm:inline">View:</span>
               <ToggleGroup
@@ -101,7 +101,7 @@ export default function ItineraryClient({ tripId, initialTimeline, weather }: Pr
                 className="border rounded-lg p-0.5 bg-white"
               >
                 {VIEWS.map(({ id, icon: Icon, label }) => (
-                  <ToggleGroupItem key={id} value={id} className="gap-1.5 px-3 h-8 text-sm">
+                  <ToggleGroupItem key={id} value={id} className="gap-1.5 px-2 sm:px-3 h-8 text-sm">
                     <Icon className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">{label}</span>
                   </ToggleGroupItem>

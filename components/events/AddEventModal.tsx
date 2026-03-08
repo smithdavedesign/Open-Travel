@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Loader2, Paperclip, CheckCircle2, Radar, X } from 'lucide-react'
+import { Loader2, Paperclip, CheckCircle2, Radar, X, Plus } from 'lucide-react'
 import type { Event, EventType, FlightData, ParsedEventData } from '@/types'
 import type { FlightStatusData } from '@/lib/aviationstack/client'
 
@@ -442,7 +442,10 @@ export default function AddEventModal({ tripId, event: editEvent, open: controll
   return (
     <Dialog open={modalOpen} onOpenChange={nextOpen => nextOpen ? setModalOpen(nextOpen) : handleClose()}>
       <DialogTrigger asChild>
-        <Button size="sm">+ Add event</Button>
+        <Button size="sm" className="gap-1.5">
+          <Plus className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">Add event</span>
+        </Button>
       </DialogTrigger>
       {dialogContent}
     </Dialog>
