@@ -70,7 +70,9 @@ export default function GroupFlightBoard({ flightEvents, members }: Props) {
 
   return (
     <>
-      <div className="space-y-8">
+      {/* overflow-x-auto keeps the horizontal flex layout intact on narrow screens */}
+      <div className="overflow-x-auto">
+      <div className="space-y-8 min-w-[480px]">
         {sortedDates.map(date => (
           <div key={date}>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -147,6 +149,7 @@ export default function GroupFlightBoard({ flightEvents, members }: Props) {
             </div>
           </div>
         ))}
+      </div>
       </div>
 
       {statusEvent && (

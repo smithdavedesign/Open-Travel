@@ -35,7 +35,7 @@ export default function TripSidebar({ tripId, tripName, userInitial, userName }:
   }
 
   return (
-    <aside className="w-60 shrink-0 bg-card border-r flex flex-col h-screen sticky top-0 overflow-hidden">
+    <aside className="w-60 shrink-0 bg-card border-r hidden lg:flex flex-col h-screen sticky top-0 overflow-hidden">
       {/* Logo */}
       <div className="px-5 py-4 border-b">
         <Link href="/trips" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">

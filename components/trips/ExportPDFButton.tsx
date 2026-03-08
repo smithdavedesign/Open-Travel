@@ -32,12 +32,13 @@ export default function ExportPDFButton({ tripId }: { tripId: string }) {
     <button
       onClick={handleExport}
       disabled={loading}
+      title={loading ? 'Generating…' : 'Export PDF'}
       className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 disabled:opacity-50 transition-colors"
     >
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="1.5">
+      <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="1.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 12.5h8M8 2.5v7m0 0L5.5 7M8 9.5l2.5-2.5"/>
       </svg>
-      {loading ? 'Generating…' : 'Export PDF'}
+      <span className="hidden sm:inline">{loading ? 'Generating…' : 'Export PDF'}</span>
     </button>
   )
 }

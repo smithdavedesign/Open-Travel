@@ -471,42 +471,54 @@ export default function CalendarView() {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-slate-200">
-        <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm shrink-0">
-          {(['month', 'week', 'day'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-4 py-1.5 capitalize transition-colors ${
-                view === v ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 border-b border-slate-200">
+        {/* Row 1 (mobile) / left slot (desktop): view switcher */}
+        <div className="flex items-center justify-between sm:justify-start gap-2">
+          <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm shrink-0">
+            {(['month', 'week', 'day'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1.5 capitalize transition-colors ${
+                  view === v ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          {/* Today button — visible on mobile in row 1, hidden on sm+ */}
+          <button
+            onClick={() => setCurrentDate(new Date())}
+            className="sm:hidden text-sm px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shrink-0"
+          >
+            Today
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 flex-1 justify-center">
+        {/* Row 2 (mobile) / center slot (desktop): month nav */}
+        <div className="flex items-center gap-1 flex-1 justify-between sm:justify-center">
           <button
             onClick={() => navigate(-1)}
-            className="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors text-lg leading-none"
+            className="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors text-lg leading-none shrink-0"
           >
             ‹
           </button>
-          <span className="text-sm font-semibold text-slate-900 text-center w-64 select-none">
+          <span className="text-sm font-semibold text-slate-900 text-center truncate select-none px-1">
             {getTitle()}
           </span>
           <button
             onClick={() => navigate(1)}
-            className="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors text-lg leading-none"
+            className="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors text-lg leading-none shrink-0"
           >
             ›
           </button>
         </div>
 
+        {/* Today button — hidden on mobile (shown above), visible on sm+ */}
         <button
           onClick={() => setCurrentDate(new Date())}
-          className="text-sm px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shrink-0"
+          className="hidden sm:block text-sm px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shrink-0"
         >
           Today
         </button>

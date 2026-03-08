@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import * as TripController from '@/controllers/trip.controller'
 import TripSidebar from '@/components/trips/TripSidebar'
+import MobileTripNav from '@/components/trips/MobileTripNav'
 import TripRealtimeSync from '@/components/realtime/TripRealtimeSync'
 import OfflineBanner from '@/components/ui/OfflineBanner'
 import { notFound } from 'next/navigation'
@@ -56,49 +57,63 @@ export default async function TripLayout({
       {/* Main content column */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="bg-card border-b px-6 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="bg-card border-b px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Hamburger — mobile only */}
+            <MobileTripNav
+              tripId={tripId}
+              tripName={trip.name}
+              userInitial={userInitial}
+              userName={userName}
+            />
+
+            {/* Trip name — mobile only fallback */}
+            <span className="text-sm font-semibold text-foreground truncate lg:hidden">
+              {trip.name}
+            </span>
+
+            {/* Destinations + date — desktop only */}
             {trip.destinations.length > 0 && (
-              <span className="text-sm text-foreground font-medium truncate">
+              <span className="hidden lg:inline text-sm text-foreground font-medium truncate">
                 {trip.destinations.join(' → ')}
               </span>
             )}
             {dateRange && (
-              <span className="text-sm text-muted-foreground shrink-0">{dateRange}</span>
+              <span className="hidden lg:inline text-sm text-muted-foreground shrink-0">{dateRange}</span>
             )}
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${statusColor[trip.status]}`}>
+            <span className={`hidden sm:inline text-xs font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${statusColor[trip.status]}`}>
               {trip.status}
             </span>
           </div>
 
           {/* Right side: bell + member avatars */}
           <div className="flex items-center gap-3 shrink-0">
-          {/* Notification bell */}
-          <Link
-            href={`/trips/${tripId}/collaboration`}
-            className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            title="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-          </Link>
+            {/* Notification bell */}
+            <Link
+              href={`/trips/${tripId}/collaboration`}
+              className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+            </Link>
 
-          {/* Member avatars */}
-          <div className="flex -space-x-2 shrink-0">
-            {members.slice(0, 5).map(m => (
-              <div
-                key={m.id}
-                title={m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}
-                className="h-8 w-8 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center text-xs font-semibold text-primary uppercase"
-              >
-                {(m.profiles?.full_name?.[0] ?? m.profiles?.email?.[0] ?? '?')}
-              </div>
-            ))}
-            {members.length > 5 && (
-              <div className="h-8 w-8 rounded-full bg-muted border-2 border-card flex items-center justify-center text-xs font-semibold text-muted-foreground">
-                +{members.length - 5}
-              </div>
-            )}
-          </div>
+            {/* Member avatars — hidden on mobile */}
+            <div className="hidden sm:flex -space-x-2 shrink-0">
+              {members.slice(0, 5).map(m => (
+                <div
+                  key={m.id}
+                  title={m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}
+                  className="h-8 w-8 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center text-xs font-semibold text-primary uppercase"
+                >
+                  {(m.profiles?.full_name?.[0] ?? m.profiles?.email?.[0] ?? '?')}
+                </div>
+              ))}
+              {members.length > 5 && (
+                <div className="h-8 w-8 rounded-full bg-muted border-2 border-card flex items-center justify-center text-xs font-semibold text-muted-foreground">
+                  +{members.length - 5}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
