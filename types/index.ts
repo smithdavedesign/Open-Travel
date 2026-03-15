@@ -219,6 +219,7 @@ export interface Place {
   time_of_day: TimeOfDay | null
   duration: PlaceDuration | null
   meal_type: MealType | null
+  place_id: string | null
   created_by: string
   created_at: string
 }

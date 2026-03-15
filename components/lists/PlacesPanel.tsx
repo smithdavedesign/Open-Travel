@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil, ThumbsUp, ThumbsDown, CalendarClock, Sun, Sunset, Moon, Layers, Link2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil, ThumbsUp, ThumbsDown, CalendarClock, Sun, Sunset, Moon, Layers, Link2, Loader2, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PlaceWithVotes, PlaceCategory, PlaceStatus, TimeOfDay, PlaceDuration, MealType } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -37,7 +37,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
   const [saving, setSaving]           = useState(false)
   const [form, setForm]               = useState({
     name: '', location: '', lng: null as number | null, lat: null as number | null,
-    notes: '', url: '',
+    notes: '', url: '', place_id: null as string | null,
     reservation_needed: false,
     time_of_day: null as TimeOfDay | null,
     duration: null as PlaceDuration | null,
@@ -82,7 +82,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }))
 
-  const emptyForm = { name: '', location: '', lng: null as number | null, lat: null as number | null, notes: '', url: '', reservation_needed: false, time_of_day: null as TimeOfDay | null, duration: null as PlaceDuration | null, meal_type: null as MealType | null }
+  const emptyForm = { name: '', location: '', lng: null as number | null, lat: null as number | null, notes: '', url: '', place_id: null as string | null, reservation_needed: false, time_of_day: null as TimeOfDay | null, duration: null as PlaceDuration | null, meal_type: null as MealType | null }
 
   async function handleMapsUrl(raw: string) {
     if (!raw.trim() || !isMapsUrl(raw.trim())) return
@@ -94,17 +94,39 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
         if (res.ok) resolved = (await res.json()).resolvedUrl ?? resolved
       }
       const parsed = parseGoogleMapsUrl(resolved)
+      // Discard names that look like hash IDs (no spaces, only alphanum, long) — these are
+      // internal Google identifiers, not human-readable place names.
+      const looksLikeId = (s: string) => /^[A-Za-z0-9]{8,}$/.test(s)
+      let placeName = parsed.name && !looksLikeId(parsed.name) ? parsed.name : null
+      let placeAddress = parsed.address
+
+      // Fallback: if we have a Place ID but no clean name, call Places Details API (one cheap call)
+      if (!placeName && parsed.place_id) {
+        try {
+          const detailsRes = await fetch(`/api/places-details?place_id=${encodeURIComponent(parsed.place_id)}`)
+          if (detailsRes.ok) {
+            const details = await detailsRes.json()
+            placeName = details.name ?? null
+            placeAddress = details.address ?? placeAddress
+          }
+        } catch {
+          // non-fatal — user can type the name manually
+        }
+      }
+
       setForm(f => ({
         ...f,
-        name:     parsed.name     ?? f.name,
-        location: parsed.address  ?? f.location,
-        lat:      parsed.lat      ?? f.lat,
-        lng:      parsed.lng      ?? f.lng,
+        name:     placeName      ?? f.name,
+        location: placeAddress   ?? f.location,
+        lat:      parsed.lat     ?? f.lat,
+        lng:      parsed.lng     ?? f.lng,
         url:      resolved,
+        place_id: parsed.place_id ?? f.place_id,
       }))
       setMapsUrl('')
-      if (parsed.name) toast.success(`Imported "${parsed.name}" from Maps`)
-      else toast.info('Coordinates imported — add a name below')
+      if (placeName) toast.success(`Imported "${placeName}" from Maps`)
+      else if (parsed.lat && parsed.lng) toast.info('Location pinned — enter the place name below')
+      else toast.info('Paste a Google or Apple Maps link to import')
     } catch {
       toast.error('Could not read that Maps link')
     } finally {
@@ -123,7 +145,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
     setEditingPlace(place)
     setForm({
       name: place.name, location: place.location ?? '', lng: place.lng ?? null, lat: place.lat ?? null,
-      notes: place.notes ?? '', url: place.url ?? '',
+      notes: place.notes ?? '', url: place.url ?? '', place_id: place.place_id ?? null,
       reservation_needed: place.reservation_needed ?? false,
       time_of_day: place.time_of_day ?? null,
       duration: place.duration ?? null,
@@ -143,7 +165,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
     setSaving(true)
     try {
       if (editingPlace) {
-        const updates = { name: form.name.trim(), location: form.location || null, lng: form.lng, lat: form.lat, notes: form.notes || null, url: form.url || null, reservation_needed: form.reservation_needed, time_of_day: form.time_of_day, duration: form.duration, meal_type: form.meal_type }
+        const updates = { name: form.name.trim(), location: form.location || null, lng: form.lng, lat: form.lat, notes: form.notes || null, url: form.url || null, place_id: form.place_id || null, reservation_needed: form.reservation_needed, time_of_day: form.time_of_day, duration: form.duration, meal_type: form.meal_type }
         const res = await fetch(`/api/trips/${tripId}/places/${editingPlace.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -580,9 +602,23 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                   >
                     <ThumbsDown className={`h-3.5 w-3.5 ${place.user_vote === -1 ? 'fill-destructive' : ''}`} />
                   </button>
-                  {place.vote_count >= 2 && (
-                    <span className="ml-auto text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Popular</span>
-                  )}
+                  <div className="ml-auto flex items-center gap-1.5">
+                    {place.vote_count >= 2 && (
+                      <span className="text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Popular</span>
+                    )}
+                    {(place.url || (place.lat && place.lng)) && (
+                      <a
+                        href={place.url || `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in Maps"
+                        className="p-1 rounded text-muted-foreground/50 hover:text-foreground transition-colors"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
