@@ -11,7 +11,7 @@ import { isMapsUrl } from '@/lib/maps/parseGoogleMapsUrl'
  * When a user taps "Share" in Google Maps and selects Open Fly, the OS opens:
  *   /share-target?url=<maps-url>&title=<place-name>
  *
- * We find their most recent active trip and redirect to its Lists page
+ * We find their most recent active trip and redirect to its Places page
  * with the maps URL encoded in the query string so PlacesPanel can
  * auto-open the import dialog.
  */
@@ -48,7 +48,7 @@ export default function ShareTargetPage() {
       if (mapsLink) query.set('import_url', mapsLink)
       else if (title) query.set('import_url', text || url)
 
-      router.replace(`/trips/${tripId}/lists?${query.toString()}`)
+      router.replace(`/trips/${tripId}/places?${query.toString()}`)
     }
 
     handle()

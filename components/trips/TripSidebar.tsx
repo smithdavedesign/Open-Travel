@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Calendar, Map, ListTodo, FileText,
+  Calendar, Map, MapPin, ListTodo, FileText,
   DollarSign, Users, Plane, ChevronLeft, Settings, BookMarked,
 } from 'lucide-react'
 
@@ -19,7 +19,8 @@ const NAV_ITEMS = (base: string) => [
   { href: `${base}/flights`,          label: 'Flights',        icon: Plane },
   { href: `${base}/reservations`,     label: 'Reservations',   icon: BookMarked },
   { href: `${base}/map`,              label: 'Map',            icon: Map },
-  { href: `${base}/lists`,            label: 'Lists',          icon: ListTodo },
+  { href: `${base}/places`,           label: 'Places',         icon: MapPin },
+  { href: `${base}/lists`,            label: 'Checklists',     icon: ListTodo },
   { href: `${base}/documents`,        label: 'Documents',      icon: FileText },
   { href: `${base}/budget`,           label: 'Budget',         icon: DollarSign },
   { href: `${base}/collaboration`,    label: 'Collaboration',  icon: Users },
