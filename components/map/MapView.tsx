@@ -138,9 +138,21 @@ export default function MapView({ places, mapboxToken }: Props) {
       el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
       el.style.cursor = 'pointer'
 
+      const mapsHref = place.url
+        || `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`
+
       const popup = new mapboxgl.Popup({ offset: 20, maxWidth: '240px' }).setHTML(
         `<div style="font-family:system-ui,sans-serif">
-          <p style="font-weight:600;font-size:14px;margin:0 0 4px">${escapeHtml(place.name)}</p>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px">
+            <p style="font-weight:600;font-size:14px;margin:0">${escapeHtml(place.name)}</p>
+            <a href="${escapeHtml(mapsHref)}" target="_blank" rel="noopener noreferrer"
+               title="Open in Maps"
+               style="flex-shrink:0;color:#64748b;line-height:1;margin-top:1px">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              </svg>
+            </a>
+          </div>
           ${place.location ? `<p style="font-size:12px;color:#64748b;margin:0 0 4px">📍 ${escapeHtml(place.location)}</p>` : ''}
           <span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:9999px;background:${color}20;color:${color};font-weight:500">${CATEGORY_LABELS[place.category]}</span>
           ${place.status === 'approved' ? '<span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:9999px;background:#dcfce7;color:#16a34a;font-weight:500;margin-left:4px">Approved</span>' : ''}
