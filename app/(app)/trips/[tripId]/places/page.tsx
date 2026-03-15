@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import * as ListController from '@/controllers/list.controller'
-import ChecklistPanel from '@/components/lists/ChecklistPanel'
+import PlacesPanel from '@/components/lists/PlacesPanel'
 
-export default async function ListsPage({
+export default async function PlacesPage({
   params,
 }: {
   params: Promise<{ tripId: string }>
@@ -12,9 +12,9 @@ export default async function ListsPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  let checklistItems
+  let places
   try {
-    checklistItems = await ListController.getChecklistItems(tripId)
+    places = await ListController.getPlacesWithVotes(tripId, user.id)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return (
@@ -31,10 +31,10 @@ export default async function ListsPage({
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground">Checklists</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Packing lists, groceries, souvenirs, and anything else to keep track of</p>
+        <h2 className="text-2xl font-bold text-foreground">Places to Visit</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Save and vote on restaurants, attractions, and activities for your trip</p>
       </div>
-      <ChecklistPanel tripId={tripId} initialItems={checklistItems} />
+      <PlacesPanel tripId={tripId} initialPlaces={places} />
     </div>
   )
 }
