@@ -30,6 +30,7 @@ export default async function ItineraryPage({
       tripId={tripId}
       initialTimeline={timeline}
       weather={weather?.daily ?? {}}
+      tripStartDate={trip?.start_date ?? null}
     />
   )
 }

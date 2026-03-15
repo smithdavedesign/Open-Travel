@@ -8,7 +8,6 @@ import type { WeatherByDate } from '@/lib/weather/openmeteo'
 import EventCard from '@/components/events/EventCard'
 import AddEventModal from '@/components/events/AddEventModal'
 import ExportPDFButton from '@/components/trips/ExportPDFButton'
-import ActivityFeed from '@/components/activity/ActivityFeed'
 import WeatherBadge from '@/components/weather/WeatherBadge'
 import KanbanView from './KanbanView'
 import BlockView from './BlockView'
@@ -21,6 +20,7 @@ interface Props {
   tripId: string
   initialTimeline: Record<string, Event[]>
   weather: WeatherByDate
+  tripStartDate: string | null
 }
 
 const VIEWS: { id: View; icon: React.ElementType; label: string }[] = [
@@ -36,11 +36,16 @@ function formatDayHeading(dateStr: string): string {
   })
 }
 
-function getDayNumber(dateStr: string, sortedDates: string[]): number {
+function getDayNumber(dateStr: string, tripStartDate: string | null, sortedDates: string[]): number {
+  if (tripStartDate) {
+    const start = new Date(tripStartDate + 'T00:00:00')
+    const date = new Date(dateStr + 'T00:00:00')
+    return Math.round((date.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  }
   return sortedDates.indexOf(dateStr) + 1
 }
 
-export default function ItineraryClient({ tripId, initialTimeline, weather }: Props) {
+export default function ItineraryClient({ tripId, initialTimeline, weather, tripStartDate }: Props) {
   const router = useRouter()
   const [view, setView]               = useState<View>('list')
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
@@ -128,7 +133,7 @@ export default function ItineraryClient({ tripId, initialTimeline, weather }: Pr
             {view === 'list' && (
               <div className="space-y-8">
                 {sortedDates.map(date => {
-                  const dayNum = getDayNumber(date, allSortedDates)
+                  const dayNum = getDayNumber(date, tripStartDate, allSortedDates)
                   return (
                     <div key={date} className="relative">
                       {/* Day header */}
@@ -184,17 +189,12 @@ export default function ItineraryClient({ tripId, initialTimeline, weather }: Pr
               />
             )}
 
-            {view === 'calendar' && <CalendarView />}
+            {view === 'calendar' && <CalendarView initialDate={tripStartDate} />}
           </>
         )}
       </div>
 
-      {/* Activity feed — only shown in list view */}
-      {view === 'list' && (
-        <div className="w-72 shrink-0 hidden lg:block">
-          <ActivityFeed tripId={tripId} />
-        </div>
-      )}
+
 
       {/* Edit modal — controlled */}
       {editingEvent && (

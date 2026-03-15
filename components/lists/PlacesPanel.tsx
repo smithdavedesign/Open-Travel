@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil, ThumbsUp, ThumbsDown, CalendarClock, Sun, Sunset, Moon, Layers, HelpCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import type { PlaceWithVotes, PlaceCategory, PlaceStatus } from '@/types'
+import type { PlaceWithVotes, PlaceCategory, PlaceStatus, TimeOfDay, PlaceDuration, MealType } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,38 +31,64 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
   const [dialogOpen, setDialogOpen]   = useState(false)
   const [editingPlace, setEditingPlace] = useState<PlaceWithVotes | null>(null)
   const [saving, setSaving]           = useState(false)
-  const [form, setForm]               = useState({ name: '', location: '', lng: null as number | null, lat: null as number | null, notes: '', url: '' })
+  const [form, setForm]               = useState({
+    name: '', location: '', lng: null as number | null, lat: null as number | null,
+    notes: '', url: '',
+    reservation_needed: false,
+    time_of_day: null as TimeOfDay | null,
+    duration: null as PlaceDuration | null,
+    meal_type: null as MealType | null,
+  })
+
+  // Active filters
+  const [filterReservation, setFilterReservation] = useState<boolean | null>(null)
+  const [filterTimeOfDay, setFilterTimeOfDay]     = useState<TimeOfDay | null>(null)
+  const [filterDuration, setFilterDuration]       = useState<PlaceDuration | null>(null)
+  const [filterMealType, setFilterMealType]       = useState<MealType | null>(null)
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 
   const activeCfg = CATEGORIES.find(c => c.id === activeCategory)!
   const allCategoryPlaces = places.filter(p => p.category === activeCategory)
-  const categoryPlaces    = search
-    ? allCategoryPlaces.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.location?.toLowerCase().includes(search.toLowerCase()))
-    : allCategoryPlaces
+  const categoryPlaces = allCategoryPlaces.filter(p => {
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.location?.toLowerCase().includes(search.toLowerCase())) return false
+    if (filterReservation !== null && p.reservation_needed !== filterReservation) return false
+    if (filterTimeOfDay && p.time_of_day !== filterTimeOfDay) return false
+    if (filterDuration && p.duration !== filterDuration) return false
+    if (filterMealType && p.meal_type !== filterMealType) return false
+    return true
+  })
   const approvedCount = allCategoryPlaces.filter(p => p.status === 'approved').length
+  const hasActiveFilters = filterReservation !== null || filterTimeOfDay || filterDuration || filterMealType
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }))
 
+  const emptyForm = { name: '', location: '', lng: null as number | null, lat: null as number | null, notes: '', url: '', reservation_needed: false, time_of_day: null as TimeOfDay | null, duration: null as PlaceDuration | null, meal_type: null as MealType | null }
+
   function openAddDialog() {
     setEditingPlace(null)
-    setForm({ name: '', location: '', lng: null, lat: null, notes: '', url: '' })
+    setForm(emptyForm)
     setDialogOpen(true)
   }
 
   function openEditDialog(place: PlaceWithVotes) {
     setEditingPlace(place)
-    setForm({ name: place.name, location: place.location ?? '', lng: place.lng ?? null, lat: place.lat ?? null, notes: place.notes ?? '', url: place.url ?? '' })
+    setForm({
+      name: place.name, location: place.location ?? '', lng: place.lng ?? null, lat: place.lat ?? null,
+      notes: place.notes ?? '', url: place.url ?? '',
+      reservation_needed: place.reservation_needed ?? false,
+      time_of_day: place.time_of_day ?? null,
+      duration: place.duration ?? null,
+      meal_type: place.meal_type ?? null,
+    })
     setDialogOpen(true)
   }
 
   function closeDialog() {
     setDialogOpen(false)
     setEditingPlace(null)
-    setForm({ name: '', location: '', lng: null, lat: null, notes: '', url: '' })
+    setForm(emptyForm)
   }
 
   async function savePlace() {
@@ -70,7 +96,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
     setSaving(true)
     try {
       if (editingPlace) {
-        const updates = { name: form.name.trim(), location: form.location || null, lng: form.lng, lat: form.lat, notes: form.notes || null, url: form.url || null }
+        const updates = { name: form.name.trim(), location: form.location || null, lng: form.lng, lat: form.lat, notes: form.notes || null, url: form.url || null, reservation_needed: form.reservation_needed, time_of_day: form.time_of_day, duration: form.duration, meal_type: form.meal_type }
         const res = await fetch(`/api/trips/${tripId}/places/${editingPlace.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -84,7 +110,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
         const res = await fetch(`/api/trips/${tripId}/places`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...form, name: form.name.trim(), category: activeCategory, lng: form.lng, lat: form.lat }),
+          body: JSON.stringify({ ...form, name: form.name.trim(), category: activeCategory }),
         })
         if (!res.ok) throw new Error()
         const place = await res.json()
@@ -166,7 +192,7 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
             return (
               <button
                 key={cat.id}
-                onClick={() => { setActiveCategory(cat.id); setSearch('') }}
+                onClick={() => { setActiveCategory(cat.id); setSearch(''); setFilterReservation(null); setFilterTimeOfDay(null); setFilterDuration(null); setFilterMealType(null) }}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors text-left ${
                   active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-foreground'
                 }`}
@@ -235,6 +261,67 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                     <Label htmlFor="place-notes">Notes</Label>
                     <Input id="place-notes" placeholder="Any notes…" value={form.notes} onChange={set('notes')} />
                   </div>
+
+                  {/* Time of day */}
+                  <div className="space-y-1.5">
+                    <Label>Best time of day</Label>
+                    <div className="flex gap-2">
+                      {(['morning', 'afternoon', 'evening'] as TimeOfDay[]).map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, time_of_day: f.time_of_day === t ? null : t }))}
+                          className={`flex-1 px-2 py-1.5 rounded-md border text-xs font-medium capitalize transition-colors ${form.time_of_day === t ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-border/80'}`}
+                        >{t}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Meal type — food_drink only */}
+                  {activeCategory === 'food_drink' && (
+                    <div className="space-y-1.5">
+                      <Label>Meal</Label>
+                      <div className="flex gap-2">
+                        {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(m => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, meal_type: f.meal_type === m ? null : m }))}
+                            className={`flex-1 px-2 py-1.5 rounded-md border text-xs font-medium capitalize transition-colors ${form.meal_type === m ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-border/80'}`}
+                          >{m}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Duration — non-food categories */}
+                  {activeCategory !== 'food_drink' && (
+                    <div className="space-y-1.5">
+                      <Label>Duration</Label>
+                      <div className="flex gap-2">
+                        {([['full_day', 'Full day'], ['half_day', 'Half day']] as [PlaceDuration, string][]).map(([val, label]) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, duration: f.duration === val ? null : val }))}
+                            className={`flex-1 px-2 py-1.5 rounded-md border text-xs font-medium transition-colors ${form.duration === val ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-border/80'}`}
+                          >{label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reservation needed */}
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.reservation_needed}
+                      onChange={e => setForm(f => ({ ...f, reservation_needed: e.target.checked }))}
+                      className="h-4 w-4 rounded border-border accent-primary"
+                    />
+                    <span className="text-sm">Reservation needed</span>
+                  </label>
+
                   <div className="flex justify-end gap-2 pt-1">
                     <Button variant="outline" onClick={closeDialog}>Cancel</Button>
                     <Button onClick={savePlace} disabled={saving || !form.name.trim()}>
@@ -247,14 +334,68 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
           </div>
         </div>
 
+        {/* Filter chips */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {/* Reservation */}
+          <button
+            onClick={() => setFilterReservation(v => v === true ? null : true)}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${filterReservation === true ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-foreground'}`}
+          >
+            <CalendarClock className="h-3 w-3" />Reservation required
+          </button>
+
+          {/* Time of day */}
+          {([['morning', 'Morning', Sun], ['afternoon', 'Afternoon', Sunset], ['evening', 'Evening', Moon]] as [TimeOfDay, string, React.ElementType][]).map(([val, label, Icon]) => (
+            <button
+              key={val}
+              onClick={() => setFilterTimeOfDay(v => v === val ? null : val)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${filterTimeOfDay === val ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-foreground'}`}
+            >
+              <Icon className="h-3 w-3" />{label}
+            </button>
+          ))}
+
+          {/* Duration (non-food) */}
+          {activeCategory !== 'food_drink' && ([['full_day', 'Full day'], ['half_day', 'Half day']] as [PlaceDuration, string][]).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setFilterDuration(v => v === val ? null : val)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${filterDuration === val ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-foreground'}`}
+            >
+              <Layers className="h-3 w-3" />{label}
+            </button>
+          ))}
+
+          {/* Meal type (food_drink) */}
+          {activeCategory === 'food_drink' && ([['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner']] as [MealType, string][]).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setFilterMealType(v => v === val ? null : val)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${filterMealType === val ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-foreground'}`}
+            >
+              {label}
+            </button>
+          ))}
+
+          {/* Clear all */}
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setFilterReservation(null); setFilterTimeOfDay(null); setFilterDuration(null); setFilterMealType(null) }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-destructive text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
         {/* Places grid */}
         {categoryPlaces.length === 0 ? (
           <div className="text-center py-12 rounded-xl border border-dashed">
             <activeCfg.icon className={`h-8 w-8 mx-auto mb-2 ${activeCfg.color} opacity-40`} />
             <p className="text-sm text-muted-foreground">
-              {search ? `No places matching "${search}"` : 'No places yet'}
+              {search || hasActiveFilters ? 'No places match your filters' : 'No places yet'}
             </p>
-            {!search && (
+            {!search && !hasActiveFilters && (
               <button className="mt-2 text-sm text-primary hover:underline" onClick={openAddDialog}>
                 Add your first place
               </button>
@@ -313,6 +454,24 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                     {Array.from({ length: 5 }, (_, i) => (
                       <Star key={i} className={`h-3 w-3 ${i < place.rating! ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/20'}`} />
                     ))}
+                  </div>
+                )}
+
+                {/* Attribute badges */}
+                {(place.time_of_day || place.duration || place.meal_type || place.reservation_needed) && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {place.time_of_day && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{place.time_of_day}</span>
+                    )}
+                    {place.meal_type && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{place.meal_type}</span>
+                    )}
+                    {place.duration && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{place.duration === 'full_day' ? 'Full day' : 'Half day'}</span>
+                    )}
+                    {place.reservation_needed && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Reservation</span>
+                    )}
                   </div>
                 )}
 

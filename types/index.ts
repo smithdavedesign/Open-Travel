@@ -199,6 +199,10 @@ export interface ChecklistItem {
 export type PlaceCategory = 'food_drink' | 'things_to_do' | 'nature' | 'shopping' | 'work_friendly'
 export type PlaceStatus = 'pending' | 'approved'
 
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening'
+export type PlaceDuration = 'full_day' | 'half_day'
+export type MealType = 'breakfast' | 'lunch' | 'dinner'
+
 export interface Place {
   id: string
   trip_id: string
@@ -211,6 +215,10 @@ export interface Place {
   status: PlaceStatus
   rating: number | null
   url: string | null
+  reservation_needed: boolean
+  time_of_day: TimeOfDay | null
+  duration: PlaceDuration | null
+  meal_type: MealType | null
   created_by: string
   created_at: string
 }

@@ -418,13 +418,15 @@ function DayView({
 
 type CalView = 'month' | 'week' | 'day'
 
-export default function CalendarView() {
+export default function CalendarView({ initialDate }: { initialDate?: string | null }) {
   const { tripId } = useParams<{ tripId: string }>()
   const [events, setEvents]           = useState<Record<string, Event[]>>({})
   const [weather, setWeather]         = useState<WeatherByDate>({})
   const [loading, setLoading]         = useState(true)
   const [view, setView]               = useState<CalView>('month')
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState(() =>
+    initialDate ? localDate(initialDate) : new Date()
+  )
 
   useEffect(() => {
     Promise.all([

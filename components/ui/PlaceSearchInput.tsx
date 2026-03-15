@@ -43,9 +43,14 @@ export default function PlaceSearchInput({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const sessionToken = useRef(crypto.randomUUID())
+  const justSelected = useRef(false)
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (justSelected.current) {
+      justSelected.current = false
+      return
+    }
     if (!value.trim() || value.length < 2) {
       setSuggestions([])
       setOpen(false)
@@ -89,6 +94,8 @@ export default function PlaceSearchInput({
 
   async function handleSelect(item: SuggestionItem) {
     setOpen(false)
+    setSuggestions([])
+    justSelected.current = true
     setRetrieving(true)
     try {
       const res = await fetch(

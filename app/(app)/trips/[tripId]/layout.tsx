@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import * as TripController from '@/controllers/trip.controller'
 import TripSidebar from '@/components/trips/TripSidebar'
+import TripEditButton from '@/components/trips/TripEditButton'
 import MobileTripNav from '@/components/trips/MobileTripNav'
 import TripRealtimeSync from '@/components/realtime/TripRealtimeSync'
 import OfflineBanner from '@/components/ui/OfflineBanner'
@@ -81,6 +82,13 @@ export default async function TripLayout({
             {dateRange && (
               <span className="hidden lg:inline text-sm text-muted-foreground shrink-0">{dateRange}</span>
             )}
+            <TripEditButton
+              tripId={tripId}
+              initialName={trip.name}
+              initialDestinations={trip.destinations}
+              initialStartDate={trip.start_date}
+              initialEndDate={trip.end_date}
+            />
             <span className={`hidden sm:inline text-xs font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${statusColor[trip.status]}`}>
               {trip.status}
             </span>

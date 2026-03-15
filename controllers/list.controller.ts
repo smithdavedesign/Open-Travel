@@ -1,5 +1,5 @@
 import * as ListModel from '@/models/list.model'
-import type { ChecklistItem, ChecklistCategory, Place, PlaceCategory, PlaceStatus, PlaceWithVotes } from '@/types'
+import type { ChecklistItem, ChecklistCategory, Place, PlaceCategory, PlaceStatus, PlaceWithVotes, TimeOfDay, PlaceDuration, MealType } from '@/types'
 
 // ── Checklist ──────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ export async function getPlaces(tripId: string): Promise<Place[]> {
 export async function createPlace(
   tripId: string,
   userId: string,
-  data: { name: string; category: PlaceCategory; location?: string; lng?: number | null; lat?: number | null; notes?: string; url?: string }
+  data: { name: string; category: PlaceCategory; location?: string; lng?: number | null; lat?: number | null; notes?: string; url?: string; reservation_needed?: boolean; time_of_day?: TimeOfDay | null; duration?: PlaceDuration | null; meal_type?: MealType | null }
 ): Promise<Place> {
   return ListModel.createPlace({
     trip_id: tripId,
@@ -57,12 +57,16 @@ export async function createPlace(
     status: 'pending',
     rating: null,
     url: data.url ?? null,
+    reservation_needed: data.reservation_needed ?? false,
+    time_of_day: data.time_of_day ?? null,
+    duration: data.duration ?? null,
+    meal_type: data.meal_type ?? null,
   })
 }
 
 export async function updatePlace(
   placeId: string,
-  updates: Partial<Pick<Place, 'name' | 'location' | 'notes' | 'status' | 'rating' | 'url' | 'category'>>
+  updates: Partial<Pick<Place, 'name' | 'location' | 'notes' | 'status' | 'rating' | 'url' | 'category' | 'reservation_needed' | 'time_of_day' | 'duration' | 'meal_type'>>
 ): Promise<Place> {
   return ListModel.updatePlace(placeId, updates)
 }
