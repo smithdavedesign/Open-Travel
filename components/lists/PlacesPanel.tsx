@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil, ThumbsUp, ThumbsDown, CalendarClock, Sun, Sunset, Moon, Layers, HelpCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Plus, Trash2, MapPin, Star, UtensilsCrossed, Landmark, TreePine, ShoppingBag, Wifi, CheckCircle2, Clock, MoreVertical, Search, ChevronRight, Pencil, ThumbsUp, ThumbsDown, CalendarClock, Sun, Sunset, Moon, Layers, Link2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PlaceWithVotes, PlaceCategory, PlaceStatus, TimeOfDay, PlaceDuration, MealType } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import PlaceSearchInput from '@/components/ui/PlaceSearchInput'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { parseGoogleMapsUrl, isMapsUrl, isShortMapsUrl } from '@/lib/maps/parseGoogleMapsUrl'
 
 const CATEGORIES: { id: PlaceCategory; label: string; icon: React.ElementType; color: string; iconBg: string }[] = [
   { id: 'food_drink',    label: 'Food & Drink',   icon: UtensilsCrossed, color: 'text-orange-600', iconBg: 'bg-orange-100' },
@@ -25,6 +27,8 @@ interface Props {
 }
 
 export default function PlacesPanel({ tripId, initialPlaces }: Props) {
+  const searchParams = useSearchParams()
+
   const [places, setPlaces]           = useState<PlaceWithVotes[]>(initialPlaces)
   const [activeCategory, setActiveCategory] = useState<PlaceCategory>('food_drink')
   const [search, setSearch]           = useState('')
@@ -46,6 +50,20 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
   const [filterDuration, setFilterDuration]       = useState<PlaceDuration | null>(null)
   const [filterMealType, setFilterMealType]       = useState<MealType | null>(null)
 
+  // Maps URL import
+  const [mapsUrl, setMapsUrl]       = useState('')
+  const [mapsLoading, setMapsLoading] = useState(false)
+
+  // Auto-import when arriving via PWA share target
+  useEffect(() => {
+    const importUrl = searchParams.get('import_url')
+    if (importUrl) {
+      setMapsUrl(importUrl)
+      setDialogOpen(true)
+      handleMapsUrl(importUrl)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 
   const activeCfg = CATEGORIES.find(c => c.id === activeCategory)!
@@ -66,9 +84,38 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
 
   const emptyForm = { name: '', location: '', lng: null as number | null, lat: null as number | null, notes: '', url: '', reservation_needed: false, time_of_day: null as TimeOfDay | null, duration: null as PlaceDuration | null, meal_type: null as MealType | null }
 
+  async function handleMapsUrl(raw: string) {
+    if (!raw.trim() || !isMapsUrl(raw.trim())) return
+    setMapsLoading(true)
+    try {
+      let resolved = raw.trim()
+      if (isShortMapsUrl(resolved)) {
+        const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(resolved)}`)
+        if (res.ok) resolved = (await res.json()).resolvedUrl ?? resolved
+      }
+      const parsed = parseGoogleMapsUrl(resolved)
+      setForm(f => ({
+        ...f,
+        name:     parsed.name     ?? f.name,
+        location: parsed.address  ?? f.location,
+        lat:      parsed.lat      ?? f.lat,
+        lng:      parsed.lng      ?? f.lng,
+        url:      resolved,
+      }))
+      setMapsUrl('')
+      if (parsed.name) toast.success(`Imported "${parsed.name}" from Maps`)
+      else toast.info('Coordinates imported — add a name below')
+    } catch {
+      toast.error('Could not read that Maps link')
+    } finally {
+      setMapsLoading(false)
+    }
+  }
+
   function openAddDialog() {
     setEditingPlace(null)
     setForm(emptyForm)
+    setMapsUrl('')
     setDialogOpen(true)
   }
 
@@ -237,6 +284,43 @@ export default function PlacesPanel({ tripId, initialPlaces }: Props) {
                   <DialogTitle>{editingPlace ? 'Edit place' : 'Add a place to visit'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3 mt-2">
+                  {/* Google / Apple Maps URL import */}
+                  {!editingPlace && (
+                    <div className="rounded-lg border border-dashed bg-muted/30 px-3 py-2.5">
+                      <p className="text-xs text-muted-foreground mb-1.5">Import from Google or Apple Maps</p>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                          <input
+                            type="url"
+                            value={mapsUrl}
+                            onChange={e => setMapsUrl(e.target.value)}
+                            onPaste={e => {
+                              const pasted = e.clipboardData.getData('text')
+                              if (isMapsUrl(pasted)) {
+                                e.preventDefault()
+                                setMapsUrl(pasted)
+                                handleMapsUrl(pasted)
+                              }
+                            }}
+                            placeholder="Paste a Maps link…"
+                            className="w-full pl-8 h-8 text-sm rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 shrink-0"
+                          disabled={mapsLoading || !mapsUrl.trim()}
+                          onClick={() => handleMapsUrl(mapsUrl)}
+                        >
+                          {mapsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Import'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-1">
                     <Label>Search or enter a place *</Label>
                     <PlaceSearchInput
