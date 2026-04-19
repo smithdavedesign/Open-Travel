@@ -174,15 +174,19 @@ export default function MapView({ places, mapboxToken }: Props) {
       markersRef.current.push(marker)
     }
 
-    // Fit bounds if there are markers
+    // Fit bounds if there are markers with valid coordinates
     if (filtered.length > 0) {
       const bounds = new mapboxgl.LngLatBounds()
+      let hasValidPoint = false
       for (const p of filtered) {
         const pLat = Number(p.lat)
         const pLng = Number(p.lng)
-        if (Number.isFinite(pLat) && Number.isFinite(pLng)) bounds.extend([pLng, pLat])
+        if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+          bounds.extend([pLng, pLat])
+          hasValidPoint = true
+        }
       }
-      currentMap.fitBounds(bounds, { padding: 60, maxZoom: 14 })
+      if (hasValidPoint) currentMap.fitBounds(bounds, { padding: 60, maxZoom: 14 })
     }
   }, [geocoded, activeCategory])
 
