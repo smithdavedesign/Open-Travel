@@ -115,7 +115,8 @@ export default function MapView({ places, mapboxToken }: Props) {
 
   // Render markers when geocoded data or filter changes
   useEffect(() => {
-    if (!map.current) return
+    const currentMap = map.current
+    if (!currentMap) return
 
     // Clear existing markers
     markersRef.current.forEach((m) => m.remove())
@@ -138,8 +139,9 @@ export default function MapView({ places, mapboxToken }: Props) {
       el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
       el.style.cursor = 'pointer'
 
-      const mapsHref = place.url
-        || `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`
+      const safeUrl = place.url && /^https?:\/\//i.test(place.url) ? place.url : null
+      const mapsHref = safeUrl
+        ?? `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`
 
       const popup = new mapboxgl.Popup({ offset: 20, maxWidth: '240px' }).setHTML(
         `<div style="font-family:system-ui,sans-serif">
@@ -163,7 +165,7 @@ export default function MapView({ places, mapboxToken }: Props) {
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([place.lng, place.lat])
         .setPopup(popup)
-        .addTo(map.current!)
+        .addTo(currentMap)
 
       markersRef.current.push(marker)
     }
@@ -174,7 +176,7 @@ export default function MapView({ places, mapboxToken }: Props) {
       for (const p of filtered) {
         bounds.extend([p.lng, p.lat])
       }
-      map.current.fitBounds(bounds, { padding: 60, maxZoom: 14 })
+      currentMap.fitBounds(bounds, { padding: 60, maxZoom: 14 })
     }
   }, [geocoded, activeCategory])
 
@@ -270,7 +272,8 @@ export default function MapView({ places, mapboxToken }: Props) {
   )
 }
 
-function escapeHtml(str: string): string {
+function escapeHtml(str: string | null | undefined): string {
+  if (str == null) return ''
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
