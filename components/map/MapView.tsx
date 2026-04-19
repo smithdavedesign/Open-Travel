@@ -115,7 +115,8 @@ export default function MapView({ places, mapboxToken }: Props) {
 
   // Render markers when geocoded data or filter changes
   useEffect(() => {
-    if (!map.current) return
+    const currentMap = map.current
+    if (!currentMap) return
 
     // Clear existing markers
     markersRef.current.forEach((m) => m.remove())
@@ -127,7 +128,11 @@ export default function MapView({ places, mapboxToken }: Props) {
         : geocoded.filter((p) => p.category === activeCategory)
 
     for (const place of filtered) {
-      const color = CATEGORY_COLORS[place.category]
+      const lat = Number(place.lat)
+      const lng = Number(place.lng)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
+
+      const color = CATEGORY_COLORS[place.category] ?? '#6b7280'
 
       const el = document.createElement('div')
       el.style.width = '28px'
@@ -138,8 +143,9 @@ export default function MapView({ places, mapboxToken }: Props) {
       el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
       el.style.cursor = 'pointer'
 
-      const mapsHref = place.url
-        || `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`
+      const safeUrl = place.url && /^https?:\/\//i.test(place.url) ? place.url.replace(/[\r\n]/g, '') : null
+      const mapsHref = safeUrl
+        ?? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
 
       const popup = new mapboxgl.Popup({ offset: 20, maxWidth: '240px' }).setHTML(
         `<div style="font-family:system-ui,sans-serif">
@@ -161,20 +167,26 @@ export default function MapView({ places, mapboxToken }: Props) {
       )
 
       const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([place.lng, place.lat])
+        .setLngLat([lng, lat])
         .setPopup(popup)
-        .addTo(map.current!)
+        .addTo(currentMap)
 
       markersRef.current.push(marker)
     }
 
-    // Fit bounds if there are markers
+    // Fit bounds if there are markers with valid coordinates
     if (filtered.length > 0) {
       const bounds = new mapboxgl.LngLatBounds()
+      let hasValidPoint = false
       for (const p of filtered) {
-        bounds.extend([p.lng, p.lat])
+        const pLat = Number(p.lat)
+        const pLng = Number(p.lng)
+        if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+          bounds.extend([pLng, pLat])
+          hasValidPoint = true
+        }
       }
-      map.current.fitBounds(bounds, { padding: 60, maxZoom: 14 })
+      if (hasValidPoint) currentMap.fitBounds(bounds, { padding: 60, maxZoom: 14 })
     }
   }, [geocoded, activeCategory])
 
@@ -270,10 +282,12 @@ export default function MapView({ places, mapboxToken }: Props) {
   )
 }
 
-function escapeHtml(str: string): string {
+function escapeHtml(str: string | null | undefined): string {
+  if (str == null) return ''
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }
