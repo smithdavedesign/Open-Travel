@@ -1,21 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { WifiOff } from 'lucide-react'
 
-export default function OfflineBanner() {
-  const [offline, setOffline] = useState(() => !navigator.onLine)
+function subscribe(onChange: () => void) {
+  window.addEventListener('online', onChange)
+  window.addEventListener('offline', onChange)
+  return () => {
+    window.removeEventListener('online', onChange)
+    window.removeEventListener('offline', onChange)
+  }
+}
 
-  useEffect(() => {
-    const on  = () => setOffline(false)
-    const off = () => setOffline(true)
-    window.addEventListener('online', on)
-    window.addEventListener('offline', off)
-    return () => {
-      window.removeEventListener('online', on)
-      window.removeEventListener('offline', off)
-    }
-  }, [])
+export default function OfflineBanner() {
+  // The server has no navigator: it always renders "online", and the client takes over after hydration.
+  const offline = useSyncExternalStore(subscribe, () => !navigator.onLine, () => false)
 
   if (!offline) return null
 
