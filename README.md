@@ -70,7 +70,7 @@ components/      → client UI components
 ### 1. Clone and install
 
 ```bash
-git clone <repo>
+git clone https://github.com/smithdavedesign/Open-Travel
 cd travel-bot
 npm install
 ```
@@ -107,6 +107,12 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### 5. Other npm scripts
+
+- npm run build - Build the application for production
+- npm run start - Start the production server
+- npm run lint - Run ESLint to check for code errors
 
 ---
 
