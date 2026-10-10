@@ -51,24 +51,26 @@ export default function TripSettingsPage() {
       fetch(`/api/trips/${tripId}/members`),
     ])
     const [{ trip: t }, m] = await Promise.all([tripRes.json(), membersRes.json()])
-    setTrip(t)
-    setMembers(m)
-    setLoading(false)
+    setTrip(prev => t)
+    setMembers(prev => m)
+    if (t) {
+      setTripForm(prev => ({
+        name: t.name,
+        destinations: t.destinations.join(', '),
+        start_date: t.start_date ?? '',
+        end_date: t.end_date ?? '',
+        status: t.status,
+      }))
+    }
+    setLoading(prev => false)
   }
 
-  useEffect(() => { fetchData() }, [tripId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Seed form when trip loads
   useEffect(() => {
-    if (!trip) return
-    setTripForm({
-      name: trip.name,
-      destinations: trip.destinations.join(', '),
-      start_date: trip.start_date ?? '',
-      end_date: trip.end_date ?? '',
-      status: trip.status,
-    })
-  }, [trip])
+    async function fetchDataAndSet() {
+      await fetchData()
+    }
+    fetchDataAndSet()
+  }, [tripId])
 
   const isOwner = members.find(m => m.user_id === currentUserId)?.role === 'owner'
 

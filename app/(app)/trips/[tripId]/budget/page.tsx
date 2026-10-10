@@ -72,7 +72,16 @@ export default function BudgetPage() {
     setLoading(false)
   }, [tripId])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    async function callFetchData() {
+      try {
+        await fetchData();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    callFetchData();
+  }, [fetchData])
 
   const handleDelete = async (expenseId: string) => {
     await fetch(`/api/expenses/${expenseId}`, { method: 'DELETE' })
